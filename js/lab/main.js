@@ -1,7 +1,7 @@
 // main.js – testsidans UI. Ingen innerHTML med data från Homey: allt via textContent.
 
 import * as keystore from '../core/keystore.js';
-import { hasControls, isLight, purgeLegacy } from '../core/controls.js';
+import { hasControls, isControlClass, purgeLegacy } from '../core/controls.js';
 import { createHomey } from '../adapters/homey.js';
 import { ZONES } from '../adapters/spotpris.js';
 import * as C from './checks.js';
@@ -57,7 +57,7 @@ function renderDevices() {
   const ul = $('devices');
   ul.replaceChildren();
   const shown = devices
-    .filter(d => isLight(d) || (d.capabilities || []).includes('onoff'))
+    .filter(d => isControlClass(d) || (d.capabilities || []).includes('onoff'))
     .sort((a, b) => String(a.name).localeCompare(String(b.name), 'sv'));
   for (const d of shown) {
     const li = document.createElement('li');
@@ -80,7 +80,7 @@ function renderDevices() {
       ctl.append(btn);
     } else {
       const tag = document.createElement('span'); tag.className = 'k';
-      tag.textContent = isLight(d) ? 'OTILLGÄNGLIG' : 'VISNING';
+      tag.textContent = isControlClass(d) ? 'OTILLGÄNGLIG' : 'VISNING';
       ctl.append(tag);
     }
     li.append(left, ctl);

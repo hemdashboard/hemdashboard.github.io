@@ -69,6 +69,65 @@ export function setActive(id) {
   write(ACTIVE_KEY, id || null);
 }
 
+// ---------- Automatiska rum (0.3) ----------
+// Varje Homey-zon med egna enheter blir ett rum, i zonträdets ordning.
+//   - Enheter i rotzonen (zon utan förälder) hamnar i rummet "Övrigt".
+//   - Zoner utan enheter visas inte.
+//   - Manuella rum (ovan) är override: de visas först, och zoner de täcker
+//     tas bort ur de automatiska rummen så att en enhet bara visas en gång.
+// Ett rum: { id, name, zoneIds:Set, auto:boolean }. Inget sparas – allt räknas fram vid körning.
+
+export const OTHER_ID = 'auto:other';
+
+function byNameSv(a, b) {
+  return String(a.name || '').localeCompare(String(b.name || ''), 'sv');
+}
+
+export function zonesInTreeOrder(zones) {
+  const out = [];
+  const seen = new Set();
+  const kids = (pid) => zones.filter(z => (z.parent || null) === pid).sort(byNameSv);
+  const walk = (pid, depth) => {
+    if (depth > 10) return;
+    for (const z of kids(pid)) { if (seen.has(z.id)) continue; seen.add(z.id); out.push(z); walk(z.id, depth + 1); }
+  };
+  walk(null, 0);
+  for (const z of zones) if (!seen.has(z.id)) out.push(z); // föräldralösa sist
+  return out;
+}
+
+export function allRooms(zones, devices, manual = list()) {
+  const counts = new Map();
+  for (const d of devices) if (d && typeof d.zone === 'string') counts.set(d.zone, (counts.get(d.zone) || 0) + 1);
+  const zoneSet = new Set(zones.map(z => z.id));
+  const roots = new Set(zones.filter(z => !z.parent || !zoneSet.has(z.parent)).map(z => z.id));
+
+  const out = [];
+  const covered = new Set();
+  for (const r of manual) {
+    const ids = zoneIds(r, zones);
+    ids.forEach(id => covered.add(id));
+    out.push({ id: r.id, name: r.name, zoneIds: ids, auto: false });
+  }
+  for (const z of zonesInTreeOrder(zones)) {
+    if (covered.has(z.id) || roots.has(z.id) || !counts.get(z.id)) continue;
+    out.push({ id: `auto:${z.id}`, name: z.name || '(namnlös zon)', zoneIds: new Set([z.id]), auto: true });
+  }
+  // Rotzonen och enheter vars zon saknas i zonlistan
+  const otherIds = new Set([...roots].filter(id => !covered.has(id)));
+  const orphan = devices.some(d => d && typeof d.zone === 'string' && !zoneSet.has(d.zone));
+  if ([...otherIds].some(id => counts.get(id)) || orphan) {
+    out.push({ id: OTHER_ID, name: 'Övrigt', zoneIds: otherIds, auto: true, orphans: true });
+  }
+  return out;
+}
+
+export function devicesInRoom(room, devices, zones) {
+  if (!room) return [];
+  const zoneSet = new Set(zones.map(z => z.id));
+  return devices.filter(d => d && (room.zoneIds.has(d.zone) || (room.orphans && !zoneSet.has(d.zone))));
+}
+
 // Zon-ID som hör till rummet: zonen själv, och med withChildren även alla underzoner.
 export function zoneIds(room, zones) {
   const set = new Set([room.zoneId]);

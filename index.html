@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; manifest-src 'self'; worker-src 'self'; connect-src 'self' https://*.connect.athom.com wss://*.connect.athom.com https://*.homey.homeylocal.com wss://*.homey.homeylocal.com; base-uri 'none'; form-action 'none'; object-src 'none'; require-trusted-types-for 'script'; trusted-types hd-sw; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; manifest-src 'self'; worker-src 'self'; connect-src 'self' https://*.connect.athom.com wss://*.connect.athom.com https://*.homey.homeylocal.com wss://*.homey.homeylocal.com https://www.elprisetjustnu.se https://opendata-download-metfcst.smhi.se; base-uri 'none'; form-action 'none'; object-src 'none'; require-trusted-types-for 'script'; trusted-types hd-sw; upgrade-insecure-requests">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#0A0C0F">
@@ -18,12 +18,12 @@
 <body>
 <main>
   <header class="top">
-    <h1>Hem</h1>
+    <div class="when"><h1 id="title">Hem</h1><span class="clock" id="clock">–</span></div>
     <span class="live" id="live" data-s="off">–</span>
   </header>
 
   <!-- Första gången: nyckel + PIN -->
-  <section class="card hidden" id="setup">
+  <section class="card narrow hidden" id="setup">
     <h2>Anslutning</h2>
     <p>Uppgifterna krypteras med din PIN och sparas bara i den här webbläsaren. De skickas aldrig någon annanstans än till din Homey.</p>
     <label for="apiKey">API-nyckel</label>
@@ -40,7 +40,7 @@
   </section>
 
   <!-- Senare besök: lås upp -->
-  <section class="card hidden" id="unlock">
+  <section class="card narrow hidden" id="unlock">
     <h2>Lås upp</h2>
     <label for="unlockPin">PIN</label>
     <input id="unlockPin" type="password" autocomplete="current-password" inputmode="numeric">
@@ -50,53 +50,85 @@
     </div>
   </section>
 
-  <!-- Rumsvy -->
-  <section class="hidden" id="app">
-    <nav class="rooms" id="roomTabs" aria-label="Rum"></nav>
-    <div class="empty hidden" id="empty">
-      <p>Inga rum än. Lägg till ett rum och välj vilken Homey-zon det motsvarar.</p>
-      <div class="row"><button class="primary" id="emptyAdd">Lägg till rum</button></div>
+  <div class="card hidden" id="offline">
+    <h2>Ingen anslutning till Homey</h2>
+    <p class="mono" id="offlineWhy">–</p>
+    <p>Försöker igen var 30:e sekund medan appen är öppen. Elpris och väder visas ändå.</p>
+    <div class="row"><button class="primary" id="retryBtn">Försök igen</button></div>
+  </div>
+
+  <!-- Översikt -->
+  <section class="view hidden" id="v-home">
+    <div class="grid">
+      <section class="card">
+        <button class="card-link" data-go="energy"><h2>El</h2><span aria-hidden="true">→</span></button>
+        <div id="ovEl"></div>
+      </section>
+      <section class="card">
+        <button class="card-link" data-go="energy"><h2>Smarta tips</h2><span aria-hidden="true">→</span></button>
+        <div class="tips" id="ovTips"></div>
+      </section>
+      <section class="card">
+        <button class="card-link" data-go="weather"><h2>Väder</h2><span aria-hidden="true">→</span></button>
+        <div id="ovWx"></div>
+      </section>
+      <section class="card span2">
+        <button class="card-link" data-go="rooms"><h2>Rum</h2><span aria-hidden="true">→</span></button>
+        <div id="ovRooms"></div>
+      </section>
     </div>
-    <div class="card hidden" id="offline">
-      <h2>Ingen anslutning</h2>
-      <p class="mono" id="offlineWhy">–</p>
-      <p>Försöker igen var 30:e sekund medan appen är öppen.</p>
-      <div class="row"><button class="primary" id="retryBtn">Försök igen</button></div>
-    </div>
-    <div class="hidden" id="room">
-      <h2 class="sect" id="lightsHead">Belysning</h2>
-      <ul class="tiles" id="lights"></ul>
-      <h2 class="sect" id="otherHead">Övrigt</h2>
-      <ul class="tiles ro" id="others"></ul>
-    </div>
-    <p class="loading hidden" id="loading">Hämtar…</p>
   </section>
+
+  <section class="view hidden" id="v-energy"><div class="grid" id="energyRoot"></div></section>
+  <section class="view hidden" id="v-weather"><div class="grid" id="weatherRoot"></div></section>
+  <section class="view hidden" id="v-rooms"><div id="roomsRoot"></div></section>
 
   <!-- Inställningar -->
-  <section class="card hidden" id="settings">
-    <h2>Rum</h2>
-    <ul class="roomlist" id="roomList"></ul>
-    <label for="roomName">Nytt rum – namn</label>
-    <input id="roomName" type="text" maxlength="40" autocomplete="off" placeholder="Rummets namn">
-    <label for="roomZone">Homey-zon</label>
-    <select id="roomZone"></select>
-    <label class="check"><input type="checkbox" id="roomChildren"> Ta med underzoner</label>
-    <div class="row"><button class="primary" id="roomAdd">Lägg till rum</button></div>
+  <section class="view hidden" id="v-settings">
+    <div class="grid">
+      <section class="card">
+        <h2>El</h2>
+        <label for="setZone">Elområde</label>
+        <select id="setZone"></select>
+        <label for="setMeter">Elmätare (effekt och förbrukning)</label>
+        <select id="setMeter"></select>
+        <label for="setPrice">Prisenhet (pris nu)</label>
+        <select id="setPrice"></select>
+      </section>
 
-    <h2 class="gap">Kontroll</h2>
-    <p class="mono" id="ruleCheck">–</p>
-    <p class="mono" id="connInfo">–</p>
+      <section class="card">
+        <h2>Egna rum</h2>
+        <p>Valfritt. Alla Homey-zoner med enheter blir rum automatiskt. Ett eget rum ersätter zonerna det täcker, till exempel för att slå ihop en zon med dess underzoner.</p>
+        <ul class="roomlist" id="roomList"></ul>
+        <label for="roomName">Namn</label>
+        <input id="roomName" type="text" maxlength="40" autocomplete="off" placeholder="Rummets namn">
+        <label for="roomZone">Homey-zon</label>
+        <select id="roomZone"></select>
+        <label class="check"><input type="checkbox" id="roomChildren"> Ta med underzoner</label>
+        <div class="row"><button class="primary" id="roomAdd">Lägg till rum</button></div>
+      </section>
 
-    <div class="row">
-      <button id="lockBtn">Lås</button>
-      <button id="forgetBtn2" class="danger">Glöm nyckeln</button>
-      <a class="btnlink ghost" href="lab.html">Testsida</a>
+      <section class="card">
+        <h2>Kontroll</h2>
+        <p class="mono" id="ruleCheck">–</p>
+        <p class="mono" id="connInfo">–</p>
+        <ul class="diag mono" id="diag"></ul>
+        <div class="row">
+          <button id="lockBtn">Lås</button>
+          <button id="forgetBtn2" class="danger">Glöm nyckeln</button>
+          <a class="btnlink ghost" href="lab.html">Testsida</a>
+        </div>
+        <p class="fine" id="version">–</p>
+      </section>
     </div>
   </section>
 
-  <nav class="bar hidden" id="bar">
-    <button id="toRoom" aria-pressed="true">Rum</button>
-    <button id="toSettings" aria-pressed="false">Inställningar</button>
+  <nav class="bar hidden" id="bar" aria-label="Vyer">
+    <button data-go="home" aria-pressed="true">Hem</button>
+    <button data-go="energy" aria-pressed="false">El</button>
+    <button data-go="weather" aria-pressed="false">Väder</button>
+    <button data-go="rooms" aria-pressed="false">Rum</button>
+    <button data-go="settings" aria-pressed="false">Inst.</button>
   </nav>
 </main>
 <div class="toast hidden" id="toast" role="status" aria-live="polite"></div>

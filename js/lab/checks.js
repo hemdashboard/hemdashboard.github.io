@@ -3,11 +3,11 @@
 // aldrig namn, ID, adresser, positioner eller nyckel.
 
 import { asList } from '../adapters/homey.js';
-import { hasControls, isLight } from '../core/controls.js';
+import { hasControls, isControlClass } from '../core/controls.js';
 import * as smhi from '../adapters/smhi.js';
 import * as spot from '../adapters/spotpris.js';
 
-export const LAB_VERSION = '0.2.1';
+export const LAB_VERSION = '0.3.0';
 
 export const CHECKS = [
   { id: '1',  title: 'Moln: API-nyckel från webbläsaren (CORS)' },
@@ -15,7 +15,7 @@ export const CHECKS = [
   { id: '3',  title: 'homey-api-biblioteket i webbläsaren' },
   { id: '4a', title: 'Läsa enheter med valda scopes' },
   { id: '4b', title: 'Styra: device.control räcker', note: 'Välj en ofarlig lampa i listan nedan och tryck Växla' },
-  { id: '4r', title: 'Reglage endast för klass light' },
+  { id: '4r', title: 'Reglage endast för klass light och coffeemachine' },
   { id: '5',  title: 'Realtid i webbläsaren (60 s)', note: 'Tänd/släck något under tiden, här eller i Homey-appen' },
   { id: '7',  title: 'Närvaro läsbar' },
   { id: '8',  title: 'Insights läsbart' },
@@ -57,9 +57,9 @@ export async function runDevices(homey, set) {
   if (!res.ok) { set('4a', 'fail', res.err, { err: res.err }); return []; }
   const list = asList(res.data);
   const toggle = list.filter(hasControls).length;
-  const lights = list.filter(isLight).length;
+  const lights = list.filter(isControlClass).length;
   const avail = list.filter(d => d.available === false).length;
-  set('4a', 'ok', `${list.length} enheter, ${lights} med klass light, ${toggle} med reglage, ej nåbara ${avail}, ${res.ms} ms`,
+  set('4a', 'ok', `${list.length} enheter, ${lights} med klass light/coffeemachine, ${toggle} med reglage, ej nåbara ${avail}, ${res.ms} ms`,
     { n: list.length, lights, toggle, unavailable: avail, ms: res.ms });
   return list;
 }
@@ -80,7 +80,7 @@ export async function runToggle(homey, device, set) {
   return r.ok ? r.data : null;
 }
 
-// Kontroll av renderingen: varje rad med reglage ska vara klass light och tillgänglig,
+// Kontroll av renderingen: varje rad med reglage ska vara klass light eller coffeemachine och tillgänglig,
 // och antalet reglage ska vara lika med antalet enheter som regeln tillåter.
 export function runControlRender(listEl, devices, set) {
   const allowed = devices.filter(hasControls).length;
@@ -90,7 +90,7 @@ export function runControlRender(listEl, devices, set) {
     withControl += 1;
     if (li.dataset.ctl !== '1') wrong += 1;
   }
-  const nonLight = devices.filter(d => !isLight(d)).length;
+  const nonLight = devices.filter(d => !isControlClass(d)).length;
   const ok = wrong === 0 && withControl === allowed;
   set('4r', ok ? 'ok' : 'fail', `${withControl} reglage, ${wrong} utanför regeln, ${nonLight} enheter av annan klass utan reglage`,
     { withControl, wrong, allowed, nonLight });

@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.3.0 – 2026-10-31
+- Hela dashboarden i en första version: Hem (översikt), El, Väder, Rum och Inställningar med nedre fält.
+- Reglage för klass `light` och `coffeemachine` (beslut 31), i rendering och skrivväg. `coffeemachine` får bara `onoff`.
+- Automatiska rum: varje zon med enheter blir ett rum, rotzonen blir Övrigt, tomma zoner döljs. Egna rum från 0.2 ligger kvar som override.
+- El: effekt nu (realtid), förbrukning i dag per timme och 7/30 dygn per dygn ur Insights, kostnad i dag och månaden hittills, prisenhetens pris nu.
+- Spotpris i dag och i morgon (elprisetjustnu.se) som diagram med billigaste fönster och pristoppar; prisenhetens pris i dag som linje i samma skala.
+- Smarta tips: billigaste 3 och 5 timmar inom 24 timmar, pristoppar. Endast pris.
+- Väder från SMHI: nu, 24 timmar och 6 dygn. Position från Homey, avrundad.
+- Egna SVG-diagram och väderikoner (`js/core/svg.js`), inga bibliotek.
+- CSP i `index.html`: `connect-src` utökad med SMHI och elprisetjustnu.se, som `lab.html` redan hade.
+- Realtid för alla enheter i stället för bara det valda rummet.
+- Kontroll i Inställningar: regelkontroll över alla enheter och anonym diagnos per datakälla.
+- Testsidan: 4r prövar light och coffeemachine.
+- Cache `hd-shell-v0.3.0`.
+
 ## 0.2.1 – 2026-10-31
 - Ingen anslutning visas som eget läge med felkategori per väg (moln/lokalt, t.ex. `network`, `timeout`, `http-401`) och knappen Försök igen, i stället för en tom rumsvy. Nytt försök var 30:e sekund medan appen är öppen och vid återkomst från bakgrunden.
 - Rumsvyns rubriker döljs tills data finns.

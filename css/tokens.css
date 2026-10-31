@@ -27,6 +27,12 @@
   --cold: #7FB8EA;
   --bad:  #E5737A;
 
+  /* Diagram (neutrala staplar; accent bara för billigt fönster, varning för pristopp) */
+  --chart-bar:  #5C6A77;
+  --chart-cur:  #8B939D;
+  --chart-grid: #1F252C;
+  --chart-band: #ECEFF20D;
+
   /* Typografi – Inter/JetBrains Mono självhostas senare; systemfont som reserv */
   --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;

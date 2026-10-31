@@ -1,10 +1,11 @@
-// controls.js – vilka enheter som får reglage i appen (beslut 30, ersätter K-regeln).
+// controls.js – vilka enheter som får reglage i appen (beslut 31, ersätter beslut 30 i delen klasser).
 //
-// Regel: reglage endast för enheter vars `class` är exakt 'light'.
+// Regel: reglage endast för enheter vars `class` är exakt 'light' eller 'coffeemachine'.
 //   - `virtualClass` räknas inte (ett uttag med lampa som virtuell klass får inget reglage).
-//   - Saknad, okänd eller annan klass = inget reglage.
+//   - Saknad, okänd eller annan klass = inget reglage. Uttag (socket) är alltid läsande.
 //   - Otillgänglig enhet (available === false) = inget reglage.
-//   - Bara capabilities 'onoff' och 'dim', och bara om de inte är markerade som ej skrivbara.
+//   - light: capabilities 'onoff' och 'dim'. coffeemachine: endast 'onoff'.
+//   - Capability markerad som ej skrivbar (setable === false) = inget reglage.
 //
 // Ingen K-lista och ingen lokal markering: regeln är densamma i alla webbläsare och
 // kräver ingen husdata i repot. Fler klasser kräver ST-beslut.
@@ -13,8 +14,11 @@
 // assertControl före varje skrivanrop. Detta är en klientregel: nyckelns scope
 // homey.device.control gäller alla enheter.
 
-export const CONTROL_CLASS = 'light';
-export const CONTROL_CAPS = Object.freeze(['onoff', 'dim']);
+export const CONTROL_RULES = Object.freeze({
+  light: Object.freeze(['onoff', 'dim']),
+  coffeemachine: Object.freeze(['onoff']),
+});
+export const CONTROL_CLASSES = Object.freeze(Object.keys(CONTROL_RULES));
 
 // Äldre version (≤ 0.1.5) sparade en egen K-lista här. Den används inte längre.
 const LEGACY_K_KEY = 'hd.k.local.v1';
@@ -28,8 +32,18 @@ function capObj(device, cap) {
   return o && typeof o === 'object' && o[cap] && typeof o[cap] === 'object' ? o[cap] : null;
 }
 
+function rule(device) {
+  if (!device || typeof device !== 'object' || typeof device.class !== 'string') return null;
+  return Object.prototype.hasOwnProperty.call(CONTROL_RULES, device.class) ? CONTROL_RULES[device.class] : null;
+}
+
+// Enheten tillhör en klass som kan få reglage (oavsett tillgänglighet).
+export function isControlClass(device) {
+  return rule(device) !== null;
+}
+
 export function isLight(device) {
-  return Boolean(device) && typeof device === 'object' && device.class === CONTROL_CLASS;
+  return Boolean(device) && typeof device === 'object' && device.class === 'light';
 }
 
 // Antagande (A): Web API anger `available` per enhet. Bara uttryckligt false räknas
@@ -39,14 +53,16 @@ export function isAvailable(device) {
 }
 
 export function canWrite(device, cap) {
-  if (!isLight(device) || !CONTROL_CAPS.includes(cap)) return false;
+  const r = rule(device);
+  if (!r || !r.includes(cap)) return false;
   if (!caps(device).includes(cap)) return false;
   const o = capObj(device, cap);
   return !(o && o.setable === false);
 }
 
 export function hasControls(device) {
-  return isAvailable(device) && (canWrite(device, 'onoff') || canWrite(device, 'dim'));
+  const r = rule(device);
+  return Boolean(r) && isAvailable(device) && r.some(c => canWrite(device, c));
 }
 
 // Normaliserar värdet för en tillåten capability; null = ogiltigt.
