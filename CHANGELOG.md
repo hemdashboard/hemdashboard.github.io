@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.1 – 2026-10-31
+- Ingen anslutning visas som eget läge med felkategori per väg (moln/lokalt, t.ex. `network`, `timeout`, `http-401`) och knappen Försök igen, i stället för en tom rumsvy. Nytt försök var 30:e sekund medan appen är öppen och vid återkomst från bakgrunden.
+- Rumsvyns rubriker döljs tills data finns.
+- Cache `hd-shell-v0.2.1`.
+
 ## 0.2.0 – 2026-10-31
 - Reglage endast för enheter med `class === 'light'` (inte `virtualClass`), tillgängliga, och bara `onoff`/`dim` (beslut 30). Ersätter K-regeln och den egna K-listan; `kguard.js` borttagen, ny `controls.js`.
 - Skrivvägen: `homey.control(device, cap, value)` är enda skrivanropet och prövar regeln före varje anrop. Råa `setCapability` borttagen.

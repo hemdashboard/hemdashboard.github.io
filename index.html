@@ -57,7 +57,13 @@
       <p>Inga rum än. Lägg till ett rum och välj vilken Homey-zon det motsvarar.</p>
       <div class="row"><button class="primary" id="emptyAdd">Lägg till rum</button></div>
     </div>
-    <div id="room">
+    <div class="card hidden" id="offline">
+      <h2>Ingen anslutning</h2>
+      <p class="mono" id="offlineWhy">–</p>
+      <p>Försöker igen var 30:e sekund medan appen är öppen.</p>
+      <div class="row"><button class="primary" id="retryBtn">Försök igen</button></div>
+    </div>
+    <div class="hidden" id="room">
       <h2 class="sect" id="lightsHead">Belysning</h2>
       <ul class="tiles" id="lights"></ul>
       <h2 class="sect" id="otherHead">Övrigt</h2>

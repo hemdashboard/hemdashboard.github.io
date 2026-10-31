@@ -21,6 +21,7 @@ const swUrl = window.trustedTypes
 
 const $ = (id) => document.getElementById(id);
 const POLL_MS = 15000;
+const RETRY_MS = 30000;
 
 let homey = null;
 let zones = [];
@@ -29,6 +30,8 @@ let view = 'room';              // 'room' | 'settings'
 let rt = null;                  // realtidshandtag
 let rtStatus = 'off';
 let pollTimer = null;
+let retryTimer = null;
+let lastConn = {};               // felkategori per väg, t.ex. { cloud: 'network', local: 'timeout' }
 const pending = new Map();      // id → antal pågående skrivningar
 const refetchTimers = new Map();
 
@@ -99,19 +102,61 @@ function roomDevices(room) {
 
 async function pickConnection() {
   const tries = [];
-  if (homey.has('local')) tries.push(homey.ping('local').then(r => ({ mode: 'local', ok: r.ok })));
-  if (homey.has('cloud')) tries.push(homey.ping('cloud').then(r => ({ mode: 'cloud', ok: r.ok })));
+  if (homey.has('local')) tries.push(homey.ping('local').then(r => ({ mode: 'local', ok: r.ok, err: r.err })));
+  if (homey.has('cloud')) tries.push(homey.ping('cloud').then(r => ({ mode: 'cloud', ok: r.ok, err: r.err })));
   const res = await Promise.all(tries);
+  lastConn = {};
+  for (const r of res) lastConn[r.mode] = r.ok ? 'ok' : r.err;
   const pick = res.find(r => r.mode === 'local' && r.ok) || res.find(r => r.mode === 'cloud' && r.ok);
   homey.use(pick ? pick.mode : null);
   return Boolean(pick);
+}
+
+// Generiska felkategorier från http.js – inga adresser eller ID.
+function connText() {
+  const part = (mode, label) => (mode in lastConn ? `${label}: ${lastConn[mode]}` : `${label}: ej angivet`);
+  return `${part('cloud', 'moln')} · ${part('local', 'lokalt')}`;
+}
+
+function showOffline(on) {
+  $('offline').classList.toggle('hidden', !on);
+  if (on) {
+    $('offlineWhy').textContent = connText();
+    $('room').classList.add('hidden');
+    $('empty').classList.add('hidden');
+    $('roomTabs').replaceChildren();
+  }
+}
+
+// Ansluter, läser in och startar realtid. Vid fel visas orsaken och nytt försök schemaläggs.
+async function connect() {
+  clearTimeout(retryTimer);
+  if (!homey) return false;
+  $('loading').classList.remove('hidden');
+  try {
+    const ok = (await pickConnection()) && (await loadAll());
+    if (!ok) {
+      if (homey.active && !lastConn.load) lastConn.load = 'enheter';
+      setLive('off');
+      showOffline(true);
+      retryTimer = setTimeout(() => { if (!document.hidden) connect(); }, RETRY_MS);
+      return false;
+    }
+    showOffline(false);
+    renderAll();
+    restartRealtime();
+    startPolling();
+    return true;
+  } finally {
+    if (homey) $('loading').classList.add('hidden');
+  }
 }
 
 async function loadAll() {
   if (!homey.active) return false;
   const [z, d] = await Promise.all([homey.zones(), homey.devices()]);
   if (z.ok) zones = asList(z.data).filter(x => x && typeof x.id === 'string');
-  if (!d.ok) return false;
+  if (!d.ok) { lastConn.load = d.err; return false; }
   devices.clear();
   for (const x of asList(d.data)) if (x && typeof x.id === 'string') devices.set(x.id, x);
   return true;
@@ -138,7 +183,8 @@ function setLive(s) {
   const el = $('live');
   const txt = { live: 'LIVE', connecting: 'ANSLUTER', down: 'UPPDATERAS VAR 15 S', refused: 'UPPDATERAS VAR 15 S', off: '–' };
   el.dataset.s = s;
-  el.textContent = homey && homey.active ? `${txt[s] || '–'} · ${homey.active === 'local' ? 'LOKALT' : 'MOLN'}` : 'INGEN ANSLUTNING';
+  el.textContent = !homey ? '–' : homey.active ? `${txt[s] || '–'} · ${homey.active === 'local' ? 'LOKALT' : 'MOLN'}` : 'INGEN ANSLUTNING';
+  el.dataset.s = homey && !homey.active ? 'down' : s;
   renderConn();
 }
 
@@ -193,8 +239,9 @@ function stopLive() {
 document.addEventListener('visibilitychange', async () => {
   if (!homey) return;
   if (document.hidden) { if (rt) { rt.close(); rt = null; } return; }
-  if (!homey.active) await pickConnection();
+  if (!homey.active) { connect(); return; }
   if (await loadAll()) renderAll();
+  else { homey.use(null); connect(); return; }
   restartRealtime();
 });
 
@@ -332,7 +379,7 @@ function renderRuleCheck(list) {
 
 function renderConn() {
   if (!homey) { $('connInfo').textContent = '–'; return; }
-  $('connInfo').textContent = `Anslutning: ${homey.active === 'local' ? 'lokalt' : homey.active === 'cloud' ? 'moln' : 'ingen'} · realtid: ${rtStatus} · ${devices.size} enheter totalt`;
+  $('connInfo').textContent = `Anslutning: ${homey.active === 'local' ? 'lokalt' : homey.active === 'cloud' ? 'moln' : 'ingen'} · realtid: ${rtStatus} · ${devices.size} enheter totalt · ${connText()}`;
 }
 
 function zoneLabel(z) {
@@ -439,6 +486,8 @@ $('unlockPin').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('un
 
 function teardown() {
   stopLive();
+  clearTimeout(retryTimer);
+  showOffline(false);
   homey = null; zones = []; devices.clear(); pending.clear();
   $('lights').replaceChildren(); $('others').replaceChildren();
   setLive('off');
@@ -474,20 +523,13 @@ $('roomAdd').addEventListener('click', () => {
   }
 });
 
+$('retryBtn').addEventListener('click', () => connect());
+
 async function onUnlocked() {
   homey = createHomey(keystore.get());
   view = 'room';
   showView();
-  $('loading').classList.remove('hidden');
-  try {
-    if (!(await pickConnection())) { setLive('off'); toast('Ingen anslutning till Homey.'); return; }
-    if (!(await loadAll())) { toast('Kunde inte hämta enheter.'); return; }
-    renderAll();
-    restartRealtime();
-    startPolling();
-  } finally {
-    $('loading').classList.add('hidden');
-  }
+  await connect();
 }
 
 // ---------- Start ----------
