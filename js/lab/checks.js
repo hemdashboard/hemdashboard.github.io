@@ -3,11 +3,11 @@
 // aldrig namn, ID, adresser, positioner eller nyckel.
 
 import { asList } from '../adapters/homey.js';
-import { autoK, isK, canToggle, localKCount } from '../core/kguard.js';
+import { hasControls, isLight } from '../core/controls.js';
 import * as smhi from '../adapters/smhi.js';
 import * as spot from '../adapters/spotpris.js';
 
-export const LAB_VERSION = '0.1.5';
+export const LAB_VERSION = '0.2.0';
 
 export const CHECKS = [
   { id: '1',  title: 'Moln: API-nyckel från webbläsaren (CORS)' },
@@ -15,7 +15,7 @@ export const CHECKS = [
   { id: '3',  title: 'homey-api-biblioteket i webbläsaren' },
   { id: '4a', title: 'Läsa enheter med valda scopes' },
   { id: '4b', title: 'Styra: device.control räcker', note: 'Välj en ofarlig lampa i listan nedan och tryck Växla' },
-  { id: '4k', title: 'K-enheter saknar reglage' },
+  { id: '4r', title: 'Reglage endast för klass light' },
   { id: '5',  title: 'Realtid i webbläsaren (60 s)', note: 'Tänd/släck något under tiden, här eller i Homey-appen' },
   { id: '7',  title: 'Närvaro läsbar' },
   { id: '8',  title: 'Insights läsbart' },
@@ -56,22 +56,21 @@ export async function runDevices(homey, set) {
   const res = await homey.devices();
   if (!res.ok) { set('4a', 'fail', res.err, { err: res.err }); return []; }
   const list = asList(res.data);
-  const toggle = list.filter(canToggle).length;
-  const kAuto = list.filter(autoK).length;
-  const kTotal = list.filter(isK).length;
+  const toggle = list.filter(hasControls).length;
+  const lights = list.filter(isLight).length;
   const avail = list.filter(d => d.available === false).length;
-  set('4a', 'ok', `${list.length} enheter, ${toggle} med reglage, K ${kTotal} (auto ${kAuto}, egna ${localKCount()}), ej nåbara ${avail}, ${res.ms} ms`,
-    { n: list.length, toggle, kAuto, kTotal, kLocal: localKCount(), unavailable: avail, ms: res.ms });
+  set('4a', 'ok', `${list.length} enheter, ${lights} med klass light, ${toggle} med reglage, ej nåbara ${avail}, ${res.ms} ms`,
+    { n: list.length, lights, toggle, unavailable: avail, ms: res.ms });
   return list;
 }
 
 export async function runToggle(homey, device, set) {
-  // K-spärr även här, inte bara i renderingen: K eller ej växlingsbar → inget skrivanrop.
-  if (!canToggle(device)) { set('4b', 'fail', 'k-spärr', { err: 'k-guard' }); return null; }
+  // Spärren prövas i homey.control (skrivvägen) oavsett vad renderingen visade.
   set('4b', 'run', '');
   const cur = device.capabilitiesObj && device.capabilitiesObj.onoff ? device.capabilitiesObj.onoff.value : null;
   const next = !cur;
-  const w = await homey.setCapability(device.id, 'onoff', next);
+  const w = await homey.control(device, 'onoff', next);
+  if (w.err === 'control-denied' || w.err === 'control-value') { set('4b', 'fail', 'spärr: inget skrivanrop', { err: w.err }); return null; }
   if (!w.ok) { set('4b', 'fail', w.err, { err: w.err, ms: w.ms }); return null; }
   const r = await homey.device(device.id);
   const after = r.ok && r.data && r.data.capabilitiesObj && r.data.capabilitiesObj.onoff ? r.data.capabilitiesObj.onoff.value : undefined;
@@ -81,21 +80,26 @@ export async function runToggle(homey, device, set) {
   return r.ok ? r.data : null;
 }
 
-export function runKRender(listEl, devices, set) {
-  const kIds = new Set(devices.filter(isK).map(d => d.id));
-  let rows = 0, withControl = 0;
-  for (const li of listEl.querySelectorAll('li[data-k="1"]')) {
-    rows += 1;
-    if (li.querySelector('button.toggle')) withControl += 1;
+// Kontroll av renderingen: varje rad med reglage ska vara klass light och tillgänglig,
+// och antalet reglage ska vara lika med antalet enheter som regeln tillåter.
+export function runControlRender(listEl, devices, set) {
+  const allowed = devices.filter(hasControls).length;
+  let withControl = 0, wrong = 0;
+  for (const li of listEl.querySelectorAll('li')) {
+    if (!li.querySelector('button.toggle')) continue;
+    withControl += 1;
+    if (li.dataset.ctl !== '1') wrong += 1;
   }
-  const ok = rows === kIds.size && withControl === 0;
-  set('4k', ok ? 'ok' : 'fail', `${rows} K-rader, ${withControl} med reglage`, { rows, withControl });
+  const nonLight = devices.filter(d => !isLight(d)).length;
+  const ok = wrong === 0 && withControl === allowed;
+  set('4r', ok ? 'ok' : 'fail', `${withControl} reglage, ${wrong} utanför regeln, ${nonLight} enheter av annan klass utan reglage`,
+    { withControl, wrong, allowed, nonLight });
 }
 
 export async function runRealtime(homey, devices, set, seconds = 60) {
   if (!homey.active) { set('5', 'skip', 'ingen anslutning'); return; }
   const via = homey.active === 'local' ? 'lokalt' : 'moln';
-  const ids = devices.filter(canToggle).map(d => d.id);
+  const ids = devices.filter(hasControls).map(d => d.id);
   set('5', 'run', `lyssnar ${seconds} s via ${via}, ${ids.length + 1} prenumerationer – tryck Växla nu…`);
   const r = await homey.realtimeProbe(homey.active, seconds, n => set('5', 'run', `${n} händelser…`), ids);
   const nsNote = r.nsFromHandshake === undefined ? '' : r.nsFromHandshake ? 'namnrymd från handskakning' : 'namnrymd /api (reserv)';

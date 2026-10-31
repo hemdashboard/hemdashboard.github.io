@@ -1,0 +1,107 @@
+/* Rumsvyn (index.html) – byggs på tokens.css och baslagret i lab.css.
+   Accenten (mint) används bara för tänd lampa, aktivt val och LIVE. */
+
+body { padding-bottom: calc(88px + env(safe-area-inset-bottom)); }
+
+header.top { position: sticky; top: 0; z-index: 2; background: var(--bg); }
+header.top h1 { color: var(--text-1); }
+
+.live { font-family: var(--font-mono); font-size: var(--fs-xs); letter-spacing: .06em; color: var(--text-3); }
+.live[data-s="live"] { color: var(--accent); }
+.live[data-s="connecting"] { color: var(--info); }
+.live[data-s="down"], .live[data-s="refused"] { color: var(--warn); }
+
+/* Rumsflikar */
+nav.rooms { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+nav.rooms::-webkit-scrollbar { display: none; }
+.chip {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: var(--surface-1);
+  border-color: var(--surface-1-edge);
+  color: var(--text-2);
+}
+.chip[aria-pressed="true"] { background: var(--accent-dim); border-color: var(--accent); color: var(--text-1); }
+
+h2.sect { margin: 16px 0 8px; }
+h2.gap { margin-top: 20px; }
+
+/* Rutor */
+ul.tiles { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--gap);
+           grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+.tile {
+  display: grid; gap: 10px; align-content: start;
+  min-height: 96px;
+  padding: 14px;
+  background: var(--surface-1);
+  border: 1px solid var(--surface-1-edge);
+  border-radius: var(--r-lg);
+  transition: border-color var(--dur) var(--ease);
+}
+.tile[data-on="1"] { border-color: var(--accent); }
+.tile.off { opacity: .55; }
+.tile-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.tile .name { font-size: var(--fs-sm); color: var(--text-1); line-height: 1.3; word-break: break-word; }
+.tile .state { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--text-3); margin-top: 4px;
+               font-variant-numeric: tabular-nums; }
+.tile[data-on="1"] .state { color: var(--accent); }
+ul.tiles.ro .tile { min-height: 72px; background: var(--surface-2); border-color: var(--surface-2-edge); }
+
+/* Strömbrytare: 52×32 synligt, 44 px träffyta */
+button.switch {
+  flex: 0 0 auto;
+  position: relative;
+  width: 52px; min-height: 32px; height: 32px; padding: 0;
+  margin: 6px 0;
+  border-radius: 999px;
+  background: var(--surface-2);
+  border: 1px solid var(--surface-2-edge);
+}
+button.switch::before {               /* större träffyta utan större form */
+  content: ""; position: absolute; inset: -6px;
+}
+button.switch::after {
+  content: ""; position: absolute; top: 3px; left: 3px;
+  width: 24px; height: 24px; border-radius: 50%;
+  background: var(--text-3);
+  transition: transform var(--dur) var(--ease), background var(--dur) var(--ease);
+}
+button.switch[aria-checked="true"] { background: var(--accent); border-color: var(--accent); }
+button.switch[aria-checked="true"]::after { transform: translateX(20px); background: var(--accent-ink); }
+
+/* Dimmer */
+input.dim {
+  width: 100%; min-height: var(--touch); padding: 0; margin: 0;
+  background: transparent; border: 0;
+  accent-color: var(--accent);
+}
+
+.empty, .loading { padding: 16px 0; }
+
+/* Inställningar */
+ul.roomlist { list-style: none; margin: 0 0 8px; padding: 0; display: grid; gap: 6px; }
+ul.roomlist li {
+  display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  padding: 6px 10px; min-height: var(--touch);
+  background: var(--surface-2); border: 1px solid var(--surface-2-edge); border-radius: var(--r-sm);
+  font-size: var(--fs-sm);
+}
+ul.roomlist .meta { color: var(--text-3); font-size: var(--fs-xs); font-family: var(--font-mono); }
+label.check { display: flex; align-items: center; gap: 8px; min-height: var(--touch); margin: 6px 0 0;
+              text-transform: none; letter-spacing: 0; font-family: var(--font-sans); font-size: var(--fs-sm); color: var(--text-2); }
+label.check input { width: 22px; min-height: 22px; accent-color: var(--accent); }
+p.mono { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--text-2); }
+a.btnlink.ghost { background: var(--surface-2); color: var(--text-1); border: 1px solid var(--surface-2-edge); font-weight: 400; }
+
+/* Nedre fält */
+nav.bar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 3;
+  display: flex; gap: 8px; justify-content: center;
+  padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+  background: var(--bg); border-top: 1px solid var(--surface-1-edge);
+}
+nav.bar button { flex: 1; max-width: 240px; background: transparent; border-color: transparent; color: var(--text-3);
+                 font-family: var(--font-mono); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: .08em; }
+nav.bar button[aria-pressed="true"] { color: var(--accent); }
+
+.toast { bottom: calc(76px + env(safe-area-inset-bottom)); }

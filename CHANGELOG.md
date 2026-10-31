@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.0 – 2026-10-31
+- Reglage endast för enheter med `class === 'light'` (inte `virtualClass`), tillgängliga, och bara `onoff`/`dim` (beslut 30). Ersätter K-regeln och den egna K-listan; `kguard.js` borttagen, ny `controls.js`.
+- Skrivvägen: `homey.control(device, cap, value)` är enda skrivanropet och prövar regeln före varje anrop. Råa `setCapability` borttagen.
+- Gammal lokal K-lista (`hd.k.local.v1`) rensas ur lagringen vid start.
+- Rumsvy i `index.html`: rum → zon kopplas i appen och sparas lokalt. Lampor med på/av och dimmer, övriga enheter läsande, otillgängliga utan reglage.
+- Realtid per enhet med återanslutning; polling var 15 s när realtid saknas. Allt läses om när appen kommer tillbaka från bakgrunden.
+- Regelkontroll i Inställningar: räknar ritade reglage mot regeln.
+- Testsidan: test 4k ersatt av 4r (reglage endast för klass light), K-markeringar borttagna.
+- Cache `hd-shell-v0.2.0`.
+
 ## 0.1.5 – 2026-10-31
 - Flytt till egen origin `hemdashboard.github.io` (beslut 25).
 - CSP: Trusted Types krävs i båda sidorna; policyn `hd-sw` tillåter bara `./sw.js`.

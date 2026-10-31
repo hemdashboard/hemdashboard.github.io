@@ -8,6 +8,7 @@
 //   realtid: socket.io (Engine.IO v4) över WebSocket, namespace /api
 
 import { request } from '../core/http.js';
+import { assertControl } from '../core/controls.js';
 
 const API = '/api/manager';
 
@@ -71,11 +72,106 @@ export function createHomey({ key, cloudId, lanIp }) {
     insightsEntries: (log, resolution = 'last24Hours', mode) =>
       get(`/insights/log/${encodeURIComponent(log.ownerUri)}/${encodeURIComponent(log.id)}/entry/?resolution=${encodeURIComponent(resolution)}`, mode, 10000),
 
-    setCapability(id, capability, value, mode) {
+    // Enda skrivvägen. Spärren (controls.js) prövas här, före varje anrop:
+    // bara class 'light', tillgänglig, capability onoff/dim, giltigt värde.
+    // Nekat anrop skickas aldrig och returneras som fel 'control-denied'/'control-value'.
+    control(device, capability, value, mode) {
+      let v;
+      try { v = assertControl(device, capability, value); }
+      catch (e) { return Promise.resolve({ ok: false, status: 0, ms: 0, err: e.message, data: null }); }
       return request(
-        base(mode) + API + `/devices/device/${encodeURIComponent(id)}/capability/${encodeURIComponent(capability)}`,
-        { method: 'PUT', headers: auth, body: { value }, timeout: 8000 }
+        base(mode) + API + `/devices/device/${encodeURIComponent(device.id)}/capability/${encodeURIComponent(capability)}`,
+        { method: 'PUT', headers: auth, body: { value: v }, timeout: 8000 }
       );
+    },
+
+    // Beständig realtid med återanslutning (samma protokoll som provet nedan, O 31/10):
+    // rot → handshakeClient → namnrymd → subscribe på managern och per enhet.
+    // Händelser skickas som onEvent(uri, event, data), t.ex.
+    //   ('homey:device:<id>', 'capability', { capabilityId, value })   (typ O, form A)
+    // onStatus: 'connecting' | 'live' | 'down' | 'refused' | 'off'.
+    // Returnerar { close() }.
+    realtime({ deviceIds = [], onEvent, onStatus } = {}) {
+      let ws = null, ns = null, closed = false, retry = 0, retryTimer = null, stepTimer = null;
+      const status = (s) => { try { onStatus && onStatus(s); } catch { /* ignore */ } };
+      const parse = (t) => { try { return JSON.parse(t); } catch { return null; } };
+      const kill = () => { clearTimeout(stepTimer); try { ws && ws.close(); } catch { /* ignore */ } };
+      const expect = () => { clearTimeout(stepTimer); stepTimer = setTimeout(kill, 8000); };
+      const schedule = () => {
+        if (closed) return;
+        clearTimeout(retryTimer);
+        const delay = Math.min(60000, 1000 * 2 ** Math.min(retry, 6)) + Math.floor(Math.random() * 500);
+        retry += 1;
+        retryTimer = setTimeout(connect, delay);
+      };
+
+      function connect() {
+        if (closed) return;
+        let b;
+        try { b = base(); } catch { status('off'); return; }
+        status('connecting');
+        ns = null;
+        try { ws = new WebSocket(b.replace(/^https:/, 'wss:') + '/socket.io/?EIO=4&transport=websocket'); }
+        catch { status('down'); schedule(); return; }
+        const sock = ws;
+        sock.onopen = expect;
+        sock.onerror = () => { /* onclose följer */ };
+        sock.onclose = () => {
+          clearTimeout(stepTimer);
+          if (ws === sock) ws = null;
+          if (!closed) { status('down'); schedule(); }
+        };
+        sock.onmessage = (ev) => {
+          const msg = typeof ev.data === 'string' ? ev.data : '';
+          if (msg === '2') { sock.send('3'); return; }
+          if (msg[0] === '0') { sock.send('40'); expect(); return; }
+          if (!ns && (msg === '40' || msg.startsWith('40{'))) {
+            const p = { token: key };
+            if (cloudId) p.homeyId = String(cloudId).trim();
+            sock.send('420' + JSON.stringify(['handshakeClient', p]));
+            expect();
+            return;
+          }
+          if (!ns && msg.startsWith('44')) { status('refused'); kill(); return; }
+          if (!ns && msg.startsWith('430')) {
+            const ack = parse(msg.slice(3));
+            const [err, res] = Array.isArray(ack) ? ack : [null, null];
+            if (err) { status('refused'); kill(); return; }
+            ns = res && typeof res.namespace === 'string' && res.namespace.startsWith('/') ? res.namespace : '/api';
+            sock.send(`40${ns},`);
+            expect();
+            return;
+          }
+          if (!ns) return;
+          if (msg.startsWith(`40${ns},`)) {
+            clearTimeout(stepTimer);
+            const uris = ['homey:manager:devices', ...deviceIds.map(id => `homey:device:${id}`)];
+            uris.forEach((u, i) => sock.send(`42${ns},${i + 1}` + JSON.stringify(['subscribe', u])));
+            retry = 0;
+            status('live');
+            return;
+          }
+          if (msg.startsWith(`44${ns},`)) { status('refused'); kill(); return; }
+          if (msg.startsWith(`42${ns},`)) {
+            const arr = parse(msg.slice(`42${ns},`.length));
+            if (Array.isArray(arr) && typeof arr[0] === 'string') {
+              try { onEvent && onEvent(arr[0], arr[1], arr[2]); } catch { /* ignore */ }
+            }
+          }
+          // 43… = kvittenser på subscribe; nekade enheter ger bara uteblivna händelser.
+        };
+      }
+
+      connect();
+      return {
+        close() {
+          closed = true;
+          clearTimeout(retryTimer);
+          kill();
+          ws = null;
+          status('off');
+        },
+      };
     },
 
     // Realtidsprov: socket.io (protokoll 5, Engine.IO 4) över WebSocket.

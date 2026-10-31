@@ -1,7 +1,7 @@
 // main.js – testsidans UI. Ingen innerHTML med data från Homey: allt via textContent.
 
 import * as keystore from '../core/keystore.js';
-import { isK, autoK, canToggle, setLocalK } from '../core/kguard.js';
+import { hasControls, isLight, purgeLegacy } from '../core/controls.js';
 import { createHomey } from '../adapters/homey.js';
 import { ZONES } from '../adapters/spotpris.js';
 import * as C from './checks.js';
@@ -57,12 +57,12 @@ function renderDevices() {
   const ul = $('devices');
   ul.replaceChildren();
   const shown = devices
-    .filter(d => canToggle(d) || isK(d) || (d.capabilities || []).includes('onoff'))
+    .filter(d => isLight(d) || (d.capabilities || []).includes('onoff'))
     .sort((a, b) => String(a.name).localeCompare(String(b.name), 'sv'));
   for (const d of shown) {
     const li = document.createElement('li');
-    const k = isK(d);
-    li.dataset.k = k ? '1' : '0';
+    const ctlOk = hasControls(d);
+    li.dataset.ctl = ctlOk ? '1' : '0';
 
     const left = document.createElement('div');
     const name = document.createElement('div'); name.textContent = d.name || '(namnlös)';
@@ -72,32 +72,22 @@ function renderDevices() {
     left.append(name, meta);
 
     const ctl = document.createElement('div'); ctl.className = 'ctl';
-    if (k) {
-      const tag = document.createElement('span'); tag.className = 'k';
-      tag.textContent = autoK(d) ? 'K · VISNING' : 'K (EGEN) · VISNING';
-      ctl.append(tag);
-    } else if (canToggle(d)) {
+    if (ctlOk) {
       const btn = document.createElement('button');
       btn.className = 'toggle';
       btn.textContent = 'Växla';
       btn.addEventListener('click', () => toggle(d, btn));
       ctl.append(btn);
-    }
-    if (!autoK(d)) {
-      const lbl = document.createElement('label');
-      lbl.className = 'kmark';
-      lbl.title = 'Markera som K (sparas bara i den här webbläsaren)';
-      const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = k;
-      cb.setAttribute('aria-label', 'Markera som K');
-      cb.addEventListener('change', () => { setLocalK(d.id, cb.checked); renderDevices(); });
-      lbl.append(cb, document.createTextNode(' K'));
-      ctl.append(lbl);
+    } else {
+      const tag = document.createElement('span'); tag.className = 'k';
+      tag.textContent = isLight(d) ? 'OTILLGÄNGLIG' : 'VISNING';
+      ctl.append(tag);
     }
     li.append(left, ctl);
     ul.append(li);
   }
-  $('devCount').textContent = `${shown.length} av ${devices.length} enheter visas (reglage eller K)`;
-  C.runKRender(ul, devices, set);
+  $('devCount').textContent = `${shown.length} av ${devices.length} enheter visas (lampor och enheter med på/av)`;
+  C.runControlRender(ul, devices, set);
 }
 
 async function toggle(d, btn) {
@@ -231,6 +221,8 @@ if (window.top !== window.self) {
   document.body.replaceChildren();
   throw new Error('framed');
 }
+
+purgeLegacy();
 
 for (const z of ZONES) {
   const o = document.createElement('option'); o.value = z; o.textContent = z;

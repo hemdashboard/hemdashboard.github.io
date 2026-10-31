@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="sv">
+<html lang="sv" class="boot">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; img-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'; require-trusted-types-for 'script'; trusted-types 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; manifest-src 'self'; worker-src 'self'; connect-src 'self' https://*.connect.athom.com wss://*.connect.athom.com https://*.homey.homeylocal.com wss://*.homey.homeylocal.com; base-uri 'none'; form-action 'none'; object-src 'none'; require-trusted-types-for 'script'; trusted-types hd-sw; upgrade-insecure-requests">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#0A0C0F">
@@ -12,14 +12,87 @@
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="css/tokens.css">
 <link rel="stylesheet" href="css/lab.css">
+<link rel="stylesheet" href="css/app.css">
+<script type="module" src="js/app/main.js"></script>
 </head>
 <body>
 <main>
-  <header><h1>Hemdashboard</h1><span class="tag">UNDER BYGGE</span></header>
-  <section class="card">
-    <p>Appen byggs. Testsidan kontrollerar att anslutningarna fungerar.</p>
-    <div class="row"><a class="btnlink" href="lab.html">Öppna testsidan</a></div>
+  <header class="top">
+    <h1>Hem</h1>
+    <span class="live" id="live" data-s="off">–</span>
+  </header>
+
+  <!-- Första gången: nyckel + PIN -->
+  <section class="card hidden" id="setup">
+    <h2>Anslutning</h2>
+    <p>Uppgifterna krypteras med din PIN och sparas bara i den här webbläsaren. De skickas aldrig någon annanstans än till din Homey.</p>
+    <label for="apiKey">API-nyckel</label>
+    <input id="apiKey" type="password" autocomplete="off" autocapitalize="off" spellcheck="false">
+    <label for="cloudId">Homey-ID (för moln – syns i adressen på my.homey.app)</label>
+    <input id="cloudId" type="text" autocomplete="off" autocapitalize="off" spellcheck="false">
+    <label for="lanIp">Homeys IP i hemnätet (för lokalt)</label>
+    <input id="lanIp" type="text" autocomplete="off" inputmode="decimal">
+    <label for="pin">PIN (minst 6 tecken)</label>
+    <input id="pin" type="password" autocomplete="new-password" inputmode="numeric">
+    <label for="pin2">PIN igen</label>
+    <input id="pin2" type="password" autocomplete="new-password" inputmode="numeric">
+    <div class="row"><button id="saveBtn" class="primary">Spara och fortsätt</button></div>
   </section>
+
+  <!-- Senare besök: lås upp -->
+  <section class="card hidden" id="unlock">
+    <h2>Lås upp</h2>
+    <label for="unlockPin">PIN</label>
+    <input id="unlockPin" type="password" autocomplete="current-password" inputmode="numeric">
+    <div class="row">
+      <button id="unlockBtn" class="primary">Lås upp</button>
+      <button id="forgetBtn" class="danger">Glöm nyckeln</button>
+    </div>
+  </section>
+
+  <!-- Rumsvy -->
+  <section class="hidden" id="app">
+    <nav class="rooms" id="roomTabs" aria-label="Rum"></nav>
+    <div class="empty hidden" id="empty">
+      <p>Inga rum än. Lägg till ett rum och välj vilken Homey-zon det motsvarar.</p>
+      <div class="row"><button class="primary" id="emptyAdd">Lägg till rum</button></div>
+    </div>
+    <div id="room">
+      <h2 class="sect" id="lightsHead">Belysning</h2>
+      <ul class="tiles" id="lights"></ul>
+      <h2 class="sect" id="otherHead">Övrigt</h2>
+      <ul class="tiles ro" id="others"></ul>
+    </div>
+    <p class="loading hidden" id="loading">Hämtar…</p>
+  </section>
+
+  <!-- Inställningar -->
+  <section class="card hidden" id="settings">
+    <h2>Rum</h2>
+    <ul class="roomlist" id="roomList"></ul>
+    <label for="roomName">Nytt rum – namn</label>
+    <input id="roomName" type="text" maxlength="40" autocomplete="off" placeholder="Rummets namn">
+    <label for="roomZone">Homey-zon</label>
+    <select id="roomZone"></select>
+    <label class="check"><input type="checkbox" id="roomChildren"> Ta med underzoner</label>
+    <div class="row"><button class="primary" id="roomAdd">Lägg till rum</button></div>
+
+    <h2 class="gap">Kontroll</h2>
+    <p class="mono" id="ruleCheck">–</p>
+    <p class="mono" id="connInfo">–</p>
+
+    <div class="row">
+      <button id="lockBtn">Lås</button>
+      <button id="forgetBtn2" class="danger">Glöm nyckeln</button>
+      <a class="btnlink ghost" href="lab.html">Testsida</a>
+    </div>
+  </section>
+
+  <nav class="bar hidden" id="bar">
+    <button id="toRoom" aria-pressed="true">Rum</button>
+    <button id="toSettings" aria-pressed="false">Inställningar</button>
+  </nav>
 </main>
+<div class="toast hidden" id="toast" role="status" aria-live="polite"></div>
 </body>
 </html>
