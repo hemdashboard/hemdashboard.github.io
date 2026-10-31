@@ -78,46 +78,84 @@ export function createHomey({ key, cloudId, lanIp }) {
       );
     },
 
-    // Realtidsprov: öppnar socket.io över WebSocket och rapporterar hur långt det kom.
-    // Steg: ws-open → eio-open → ns-ok → sub-ok → events. Stängs efter `seconds`.
-    // onEvent(count) anropas vid varje inkommande händelse.
+    // Realtidsprov: socket.io (protokoll 5, Engine.IO 4) över WebSocket.
+    // Antagande (A) om Homeys flöde, efter att /api med token i auth nekades (O 31/10):
+    //   1. anslut till rotnamnrymden /
+    //   2. emit handshakeClient { token, homeyId } med kvittens → svaret anger namnrymd
+    //   3. anslut till namnrymden (reserv /api)
+    //   4. emit subscribe 'homey:manager:devices' med kvittens → händelser kommer
+    // Varje steg rapporteras i r.stage, fel i r.err. Inga data ur händelserna sparas.
     realtimeProbe(mode, seconds, onEvent) {
       return new Promise(resolve => {
         const url = base(mode).replace(/^https:/, 'wss:') + '/socket.io/?EIO=4&transport=websocket';
         const r = { stage: 'start', events: 0, firstEventMs: null, err: null };
         const t0 = performance.now();
-        let ws;
+        let ws, ns = null, stepTimer = null;
         const finish = (err) => {
           if (err && !r.err) r.err = err;
-          try { ws && ws.close(); } catch { /* ignore */ }
+          clearTimeout(stepTimer);
           clearTimeout(timer);
+          try { ws && ws.close(); } catch { /* ignore */ }
           resolve(r);
         };
+        // Varje steg före händelser måste svara inom 8 s
+        const expect = (label) => { clearTimeout(stepTimer); stepTimer = setTimeout(() => finish(`${label}-timeout`), 8000); };
         const timer = setTimeout(() => finish(null), seconds * 1000);
-        try { ws = new WebSocket(url); } catch { return finish('ws-blocked'); }
+        const parseAck = (body) => { try { return JSON.parse(body); } catch { return null; } };
 
-        ws.onopen = () => { r.stage = 'ws-open'; };
+        try { ws = new WebSocket(url); } catch { return finish('ws-blocked'); }
+        ws.onopen = () => { r.stage = 'ws-open'; expect('eio'); };
         ws.onerror = () => { if (r.stage === 'start') finish('ws-error'); };
-        ws.onclose = () => { if (r.stage === 'start' || r.stage === 'ws-open') finish(r.err || 'ws-closed'); };
+        ws.onclose = () => { if (r.stage !== 'events') finish(r.err || 'ws-closed'); };
+
         ws.onmessage = (ev) => {
           const msg = typeof ev.data === 'string' ? ev.data : '';
-          if (msg === '2') { ws.send('3'); return; }               // ping → pong
-          if (msg.startsWith('0')) {                                // Engine.IO open
+          if (msg === '2') { ws.send('3'); return; }                       // ping → pong
+          if (msg[0] === '0') {                                            // Engine.IO open
             r.stage = 'eio-open';
-            ws.send('40/api,' + JSON.stringify({ token: key }));
+            ws.send('40');                                                 // anslut till /
+            expect('root');
             return;
           }
-          if (msg.startsWith('40/api')) {                           // namespace ansluten
+          if (msg.startsWith('40{') || msg === '40') {                     // / ansluten
+            r.stage = 'root-ok';
+            const payload = { token: key };
+            if (cloudId) payload.homeyId = String(cloudId).trim();
+            ws.send('420' + JSON.stringify(['handshakeClient', payload])); // emit med kvittens 0
+            expect('handshake');
+            return;
+          }
+          if (msg.startsWith('44{') || msg === '44') { finish('root-refused'); return; }
+          if (msg.startsWith('430')) {                                     // kvittens på handskakning
+            const ack = parseAck(msg.slice(3));
+            const [err, res] = Array.isArray(ack) ? ack : [null, null];
+            if (err) { finish('handshake-refused'); return; }
+            r.stage = 'handshake-ok';
+            ns = res && typeof res.namespace === 'string' && res.namespace.startsWith('/') ? res.namespace : '/api';
+            r.nsFromHandshake = Boolean(res && res.namespace);
+            ws.send(`40${ns},`);
+            expect('ns');
+            return;
+          }
+          if (ns && msg.startsWith(`40${ns},`)) {                          // namnrymd ansluten
             r.stage = 'ns-ok';
-            ws.send('42/api,1' + JSON.stringify(['subscribe', 'homey:manager:devices']));
+            ws.send(`42${ns},1` + JSON.stringify(['subscribe', 'homey:manager:devices']));
+            expect('sub');
             return;
           }
-          if (msg.startsWith('44/api')) { finish('ns-refused'); return; }
-          if (msg.startsWith('43/api,1')) { r.stage = 'sub-ok'; return; } // ack på subscribe
-          if (msg.startsWith('42/api')) {                           // händelse
+          if (ns && msg.startsWith(`44${ns},`)) { finish('ns-refused'); return; }
+          if (ns && msg.startsWith(`43${ns},1`)) {                         // kvittens på subscribe
+            const ack = parseAck(msg.slice(`43${ns},1`.length));
+            if (Array.isArray(ack) && ack[0]) { finish('sub-refused'); return; }
+            clearTimeout(stepTimer);
+            r.stage = 'sub-ok';
+            return;
+          }
+          if (ns && msg.startsWith(`42${ns},`)) {                          // händelse
+            clearTimeout(stepTimer);
             r.events += 1;
             if (r.events === 1) r.firstEventMs = Math.round(performance.now() - t0);
-            if (r.stage !== 'events') r.stage = 'events';
+            r.stage = 'events';
             onEvent && onEvent(r.events);
           }
         };

@@ -7,7 +7,7 @@ import { autoK, isK, canToggle, localKCount } from '../core/kguard.js';
 import * as smhi from '../adapters/smhi.js';
 import * as spot from '../adapters/spotpris.js';
 
-export const LAB_VERSION = '0.1.1';
+export const LAB_VERSION = '0.1.2';
 
 export const CHECKS = [
   { id: '1',  title: 'Moln: API-nyckel från webbläsaren (CORS)' },
@@ -96,7 +96,9 @@ export async function runRealtime(homey, set, seconds = 60) {
   const r = await homey.realtimeProbe(homey.active, seconds, n => set('5', 'run', `${n} händelser…`));
   const via = homey.active === 'local' ? 'lokalt' : 'moln';
   const meta = { via, stage: r.stage, events: r.events, firstEventMs: r.firstEventMs, err: r.err };
-  if (r.events > 0) set('5', 'ok', `${r.events} händelser (${via}), första efter ${r.firstEventMs} ms`, meta);
+  const nsNote = r.nsFromHandshake === undefined ? '' : r.nsFromHandshake ? ', namnrymd från handskakning' : ', namnrymd /api (reserv)';
+  if (r.events > 0) set('5', 'ok', `${r.events} händelser (${via}), första efter ${r.firstEventMs} ms${nsNote}`, meta);
+  else if (r.stage === 'sub-ok') set('5', 'warn', `prenumeration OK men inga händelser på ${seconds} s (${via})${nsNote} – tände/släckte du något?`, meta);
   else set('5', 'fail', `nådde steg ${r.stage}${r.err ? ', ' + r.err : ''} (${via}) – polling krävs eller homey-api`, meta);
 }
 
