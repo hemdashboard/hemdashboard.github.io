@@ -7,7 +7,7 @@ import { autoK, isK, canToggle, localKCount } from '../core/kguard.js';
 import * as smhi from '../adapters/smhi.js';
 import * as spot from '../adapters/spotpris.js';
 
-export const LAB_VERSION = '0.1.2';
+export const LAB_VERSION = '0.1.3';
 
 export const CHECKS = [
   { id: '1',  title: 'Moln: API-nyckel från webbläsaren (CORS)' },
@@ -43,7 +43,7 @@ export async function runConnection(homey, set) {
     const b = a.ok ? await homey.ping(mode) : null;
     results[mode] = a.ok;
     if (a.ok) set(id, 'ok', `${a.ms} ms, sedan ${b.ms} ms`, { ms1: a.ms, ms2: b.ms });
-    else set(id, mode === 'local' && a.err === 'network' ? 'warn' : 'fail', a.err, { err: a.err, ms: a.ms });
+    else set(id, mode === 'local' && (a.err === 'network' || a.err === 'timeout') ? 'warn' : 'fail', mode === 'local' && (a.err === 'network' || a.err === 'timeout') ? `${a.err} – väntat utanför hemmanätet` : a.err, { err: a.err, ms: a.ms });
   }
   // Lokalt först om det svarar, annars moln
   homey.use(results.local ? 'local' : (results.cloud ? 'cloud' : null));

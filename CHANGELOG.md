@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.3 – 2026-10-31
+- Service worker: egna filer hämtas med omvalidering (`cache: 'no-cache'`) så att en release syns vid nästa omladdning trots Pages cachetid.
+- Test 2: lokal timeout visas som varning (väntat utanför hemmanätet), som nätverksfel redan gjorde.
+- Cache `hd-shell-v0.1.3`.
+
 ## 0.1.2 – 2026-10-31
 - Test 5: realtidsprovet följer handskakningen på rotnamnrymden (handshakeClient → namnrymd → subscribe) och rapporterar varje steg. Varning i stället för fel när prenumerationen lyckas men inget händer under minuten.
 - Cache `hd-shell-v0.1.2`.

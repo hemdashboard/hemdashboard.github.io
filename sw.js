@@ -1,7 +1,7 @@
 // sw.js – appskal offline. Cachar bara egna statiska filer.
 // Anrop till Homey, SMHI och spotpris går alltid direkt till nätet och cachas aldrig.
 // Höj CACHE vid varje release.
-const CACHE = 'hd-shell-v0.1.2';
+const CACHE = 'hd-shell-v0.1.3';
 const SHELL = [
   './', './index.html', './lab.html', './manifest.webmanifest', './icons/icon.svg',
   './css/tokens.css', './css/lab.css',
@@ -22,12 +22,14 @@ self.addEventListener('activate', (e) => {
   );
 });
 
-// Nät först för egna filer (alltid senaste versionen när nätet finns), cache som reserv.
+// Nät först för egna filer, cache som reserv. cache: 'no-cache' tvingar omvalidering
+// mot servern: GitHub Pages cachetid (10 min) får inte ge en blandning av gamla och
+// nya filer efter en release. Oförändrade filer kostar bara ett 304-svar.
 self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
   if (e.request.method !== 'GET' || url.origin !== self.location.origin) return;
   e.respondWith(
-    fetch(e.request)
+    fetch(e.request, { cache: 'no-cache' })
       .then(res => {
         if (res.ok) { const copy = res.clone(); caches.open(CACHE).then(c => c.put(e.request, copy)); }
         return res;
