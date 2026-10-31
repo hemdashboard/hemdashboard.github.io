@@ -185,9 +185,9 @@ $('runBtn').addEventListener('click', async () => {
 });
 
 $('rtBtn').addEventListener('click', async () => {
-  if (!homey || !homey.active) return toast('Kör testerna först så att en anslutning väljs.');
+  if (!homey || !homey.active || !devices.length) return toast('Kör testerna först så att anslutning och enheter finns.');
   $('rtBtn').disabled = true;
-  try { await C.runRealtime(homey, set, 60); }
+  try { await C.runRealtime(homey, devices, set, 60); }
   finally { $('rtBtn').disabled = false; }
 });
 

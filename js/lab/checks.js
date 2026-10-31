@@ -7,7 +7,7 @@ import { autoK, isK, canToggle, localKCount } from '../core/kguard.js';
 import * as smhi from '../adapters/smhi.js';
 import * as spot from '../adapters/spotpris.js';
 
-export const LAB_VERSION = '0.1.3';
+export const LAB_VERSION = '0.1.4';
 
 export const CHECKS = [
   { id: '1',  title: 'Moln: API-nyckel från webbläsaren (CORS)' },
@@ -90,16 +90,20 @@ export function runKRender(listEl, devices, set) {
   set('4k', ok ? 'ok' : 'fail', `${rows} K-rader, ${withControl} med reglage`, { rows, withControl });
 }
 
-export async function runRealtime(homey, set, seconds = 60) {
+export async function runRealtime(homey, devices, set, seconds = 60) {
   if (!homey.active) { set('5', 'skip', 'ingen anslutning'); return; }
-  set('5', 'run', `lyssnar ${seconds} s via ${homey.active === 'local' ? 'lokalt' : 'moln'}…`);
-  const r = await homey.realtimeProbe(homey.active, seconds, n => set('5', 'run', `${n} händelser…`));
   const via = homey.active === 'local' ? 'lokalt' : 'moln';
-  const meta = { via, stage: r.stage, events: r.events, firstEventMs: r.firstEventMs, err: r.err };
-  const nsNote = r.nsFromHandshake === undefined ? '' : r.nsFromHandshake ? ', namnrymd från handskakning' : ', namnrymd /api (reserv)';
-  if (r.events > 0) set('5', 'ok', `${r.events} händelser (${via}), första efter ${r.firstEventMs} ms${nsNote}`, meta);
-  else if (r.stage === 'sub-ok') set('5', 'warn', `prenumeration OK men inga händelser på ${seconds} s (${via})${nsNote} – tände/släckte du något?`, meta);
-  else set('5', 'fail', `nådde steg ${r.stage}${r.err ? ', ' + r.err : ''} (${via}) – polling krävs eller homey-api`, meta);
+  const ids = devices.filter(canToggle).map(d => d.id);
+  set('5', 'run', `lyssnar ${seconds} s via ${via}, ${ids.length + 1} prenumerationer – tryck Växla nu…`);
+  const r = await homey.realtimeProbe(homey.active, seconds, n => set('5', 'run', `${n} händelser…`), ids);
+  const nsNote = r.nsFromHandshake === undefined ? '' : r.nsFromHandshake ? 'namnrymd från handskakning' : 'namnrymd /api (reserv)';
+  const subs = `prenumerationer ${r.subs.ok}/${r.subs.sent} kvitterade${r.subs.refused ? `, ${r.subs.refused} nekade` : ''}`;
+  const chans = `manager ${r.byChannel.manager}, enhet ${r.byChannel.device}, övrigt ${r.byChannel.other}`;
+  const types = Object.entries(r.types).map(([k, v]) => `${k} ${v}`).join(', ') || 'inga';
+  const meta = { via, stage: r.stage, events: r.events, subs: r.subs, byChannel: r.byChannel, types: r.types, err: r.err };
+  if (r.events > 0) set('5', 'ok', `${r.events} händelser (${via}), första efter ${r.firstEventMs} ms; ${chans}; typer: ${types}; ${subs}; ${nsNote}`, meta);
+  else if (r.stage === 'sub-ok') set('5', 'warn', `inga händelser på ${seconds} s (${via}); ${subs}; ${nsNote} – tryckte du Växla under minuten?`, meta);
+  else set('5', 'fail', `nådde steg ${r.stage}${r.err ? ', ' + r.err : ''} (${via}); ${subs} – polling krävs`, meta);
 }
 
 export async function runPresence(homey, devices, set) {

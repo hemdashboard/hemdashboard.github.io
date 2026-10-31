@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.4 – 2026-10-31
+- Test 5: prenumererar även per enhet (homey:device:<id>) för enheter med reglage och redovisar kvittenser, händelser per kanal och händelsetyper – utan ID eller värden.
+- Cache `hd-shell-v0.1.4`.
+
 ## 0.1.3 – 2026-10-31
 - Service worker: egna filer hämtas med omvalidering (`cache: 'no-cache'`) så att en release syns vid nästa omladdning trots Pages cachetid.
 - Test 2: lokal timeout visas som varning (väntat utanför hemmanätet), som nätverksfel redan gjorde.

@@ -85,10 +85,14 @@ export function createHomey({ key, cloudId, lanIp }) {
     //   3. anslut till namnrymden (reserv /api)
     //   4. emit subscribe 'homey:manager:devices' med kvittens → händelser kommer
     // Varje steg rapporteras i r.stage, fel i r.err. Inga data ur händelserna sparas.
-    realtimeProbe(mode, seconds, onEvent) {
+    // deviceIds: enheter att prenumerera på per enhet (homey:device:<id>), utöver managern.
+    // Rapporten innehåller bara antal och händelsetyper – inga ID eller värden.
+    realtimeProbe(mode, seconds, onEvent, deviceIds = []) {
       return new Promise(resolve => {
         const url = base(mode).replace(/^https:/, 'wss:') + '/socket.io/?EIO=4&transport=websocket';
-        const r = { stage: 'start', events: 0, firstEventMs: null, err: null };
+        const r = { stage: 'start', events: 0, firstEventMs: null, err: null,
+          subs: { sent: 0, ok: 0, refused: 0 }, byChannel: { manager: 0, device: 0, other: 0 }, types: {} };
+        const typeName = (v) => (typeof v === 'string' && /^[a-z][a-z0-9._-]{0,31}$/i.test(v) ? v : 'annat');
         const t0 = performance.now();
         let ws, ns = null, stepTimer = null;
         const finish = (err) => {
@@ -139,20 +143,40 @@ export function createHomey({ key, cloudId, lanIp }) {
           }
           if (ns && msg.startsWith(`40${ns},`)) {                          // namnrymd ansluten
             r.stage = 'ns-ok';
-            ws.send(`42${ns},1` + JSON.stringify(['subscribe', 'homey:manager:devices']));
+            // Kvittens-ID 1 = managern, 2.. = enheterna
+            const uris = ['homey:manager:devices', ...deviceIds.map(id => `homey:device:${id}`)];
+            uris.forEach((uri, i) => ws.send(`42${ns},${i + 1}` + JSON.stringify(['subscribe', uri])));
+            r.subs.sent = uris.length;
             expect('sub');
             return;
           }
           if (ns && msg.startsWith(`44${ns},`)) { finish('ns-refused'); return; }
-          if (ns && msg.startsWith(`43${ns},1`)) {                         // kvittens på subscribe
-            const ack = parseAck(msg.slice(`43${ns},1`.length));
-            if (Array.isArray(ack) && ack[0]) { finish('sub-refused'); return; }
-            clearTimeout(stepTimer);
-            r.stage = 'sub-ok';
+          if (ns && msg.startsWith(`43${ns},`)) {                          // kvittens på subscribe
+            const m = msg.slice(`43${ns},`.length).match(/^(\d+)(.*)$/);
+            if (!m) return;
+            const ack = parseAck(m[2]);
+            if (Array.isArray(ack) && ack[0]) r.subs.refused += 1; else r.subs.ok += 1;
+            if (r.subs.ok + r.subs.refused === r.subs.sent) {
+              clearTimeout(stepTimer);
+              if (r.subs.ok === 0) { finish('sub-refused'); return; }
+            }
+            if (r.subs.ok > 0 && r.stage !== 'events') r.stage = 'sub-ok';
             return;
           }
           if (ns && msg.startsWith(`42${ns},`)) {                          // händelse
             clearTimeout(stepTimer);
+            const arr = parseAck(msg.slice(`42${ns},`.length));
+            const head = Array.isArray(arr) ? arr[0] : null;
+            let channel = 'other', type = 'annat';
+            if (typeof head === 'string' && head.startsWith('homey:')) {
+              channel = head.startsWith('homey:manager:devices') ? 'manager' : head.startsWith('homey:device:') ? 'device' : 'other';
+              const t = arr[1];
+              type = typeName(typeof t === 'string' ? t : (t && t.event));
+            } else {
+              type = typeName(head);
+            }
+            r.byChannel[channel] += 1;
+            r.types[type] = (r.types[type] || 0) + 1;
             r.events += 1;
             if (r.events === 1) r.firstEventMs = Math.round(performance.now() - t0);
             r.stage = 'events';
