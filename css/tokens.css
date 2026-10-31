@@ -1,0 +1,54 @@
+/* Hemdashboard – designtokens (tech-noir, mörkt som standard).
+   Palett från handovern 2026-10-31. Accent: mint.
+   Accenten används för handling och status, inte dekoration. */
+:root {
+  color-scheme: dark;
+
+  /* Ytor (grafitsteg) */
+  --bg:            #0A0C0F;
+  --surface-1:     #12161B;
+  --surface-1-edge:#1B2026;
+  --surface-2:     #161B21;
+  --surface-2-edge:#1F252C;
+
+  /* Text */
+  --text-1: #ECEFF2;
+  --text-2: #A3ABB5;
+  --text-3: #8B939D;
+
+  /* Accent */
+  --accent:       #22D39A;
+  --accent-ink:   #06231A; /* text på accentyta */
+  --accent-dim:   #22D39A26;
+
+  /* Semantik (dämpad) */
+  --warn: #F2B45A;
+  --info: #5AA9E6;
+  --cold: #7FB8EA;
+  --bad:  #E5737A;
+
+  /* Typografi – Inter/JetBrains Mono självhostas senare; systemfont som reserv */
+  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+
+  --fs-xs: 0.75rem;
+  --fs-sm: 0.875rem;
+  --fs-md: 1rem;
+  --fs-lg: 1.25rem;
+  --fs-xl: 1.75rem;
+
+  /* Form */
+  --r-xl: 24px;
+  --r-lg: 18px;
+  --r-md: 14px;
+  --r-sm: 12px;
+  --gap:  12px;
+  --touch: 44px;
+
+  --ease: cubic-bezier(.2,.8,.2,1);
+  --dur:  180ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --dur: 0ms; }
+}

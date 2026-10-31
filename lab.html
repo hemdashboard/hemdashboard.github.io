@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; manifest-src 'self'; worker-src 'self'; connect-src 'self' https://*.connect.athom.com wss://*.connect.athom.com https://*.homey.homeylocal.com wss://*.homey.homeylocal.com https://www.elprisetjustnu.se https://opendata-download-metfcst.smhi.se; base-uri 'none'; form-action 'none'; object-src 'none'; upgrade-insecure-requests">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#0A0C0F">
+<title>Hemdashboard – testsida</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/lab.css">
+<script type="module" src="js/lab/main.js"></script>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Hemdashboard · testsida</h1>
+    <span class="tag">LAB 0.1</span>
+  </header>
+
+  <!-- 1. Första gången: nyckel + PIN -->
+  <section class="card" id="setup">
+    <h2>Anslutning</h2>
+    <p>Uppgifterna krypteras med din PIN och sparas bara i den här webbläsaren. De skickas aldrig någon annanstans än till din Homey.</p>
+    <label for="apiKey">API-nyckel</label>
+    <input id="apiKey" type="password" autocomplete="off" autocapitalize="off" spellcheck="false">
+    <label for="cloudId">Homey-ID (för moln – syns i adressen på my.homey.app)</label>
+    <input id="cloudId" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" inputmode="text">
+    <label for="lanIp">Homeys IP i hemnätet (för lokalt, t.ex. 192.168.x.x)</label>
+    <input id="lanIp" type="text" autocomplete="off" inputmode="decimal">
+    <label for="pin">PIN (minst 6 tecken)</label>
+    <input id="pin" type="password" autocomplete="new-password" inputmode="numeric">
+    <label for="pin2">PIN igen</label>
+    <input id="pin2" type="password" autocomplete="new-password" inputmode="numeric">
+    <div class="row">
+      <button id="saveBtn" class="primary">Spara och fortsätt</button>
+    </div>
+  </section>
+
+  <!-- 2. Senare besök: lås upp -->
+  <section class="card hidden" id="unlock">
+    <h2>Lås upp</h2>
+    <label for="unlockPin">PIN</label>
+    <input id="unlockPin" type="password" autocomplete="current-password" inputmode="numeric">
+    <div class="row">
+      <button id="unlockBtn" class="primary">Lås upp</button>
+      <button id="forgetBtn" class="danger">Glöm nyckeln</button>
+    </div>
+  </section>
+
+  <!-- 3. Tester -->
+  <section class="card hidden" id="run">
+    <h2>Tester</h2>
+    <label for="place">Var testar du nu?</label>
+    <select id="place">
+      <option value="hemma-wifi">Hemma, wifi</option>
+      <option value="ute-mobildata">Ute, mobildata</option>
+      <option value="annat">Annat</option>
+    </select>
+    <label for="zone">Elområde</label>
+    <select id="zone"></select>
+    <label for="lat">Position för SMHI (lämna tomt = från Homey)</label>
+    <div class="row tight">
+      <input id="lat" type="text" inputmode="decimal" placeholder="lat">
+      <input id="lon" type="text" inputmode="decimal" placeholder="lon">
+    </div>
+    <div class="row">
+      <button id="runBtn" class="primary">Kör testerna</button>
+      <button id="rtBtn">Realtid 60 s</button>
+      <button id="lockBtn">Lås</button>
+      <button id="forgetBtn2" class="danger">Glöm nyckeln</button>
+    </div>
+    <ol class="checks spaced" id="checks"></ol>
+  </section>
+
+  <!-- 4. Enheter (visas bara lokalt) -->
+  <section class="card hidden" id="devCard">
+    <h2>Enheter – visas bara här</h2>
+    <p id="devCount"></p>
+    <p>K-enheter får aldrig reglage. Bocka K för enheter som är säkerhetskritiska men inte känns igen automatiskt, t.ex. ett frostskydd på ett uttag.</p>
+    <ul class="devices" id="devices"></ul>
+  </section>
+
+  <!-- 5. Resultat -->
+  <section class="card hidden" id="resCard">
+    <h2>Resultat – anonymt</h2>
+    <p>Inga namn, ID, adresser eller positioner. Klistra in i BY-chatten.</p>
+    <pre class="out" id="result"></pre>
+    <div class="row">
+      <button id="copyBtn" class="primary">Kopiera resultat</button>
+    </div>
+  </section>
+</main>
+<div class="toast hidden" id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
