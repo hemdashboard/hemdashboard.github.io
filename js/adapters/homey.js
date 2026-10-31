@@ -52,7 +52,20 @@ export function createHomey({ key, cloudId, lanIp }) {
     device: (id, mode) => get(`/devices/device/${encodeURIComponent(id)}`, mode),
     zones: (mode) => get('/zones/zone/', mode),
     users: (mode) => get('/users/user/', mode),
-    geolocation: (mode) => get('/geolocation/', mode),
+    // Homeys position (homey.geolocation.readonly). Antagande (A): ligger under
+    // optionen location; /geolocation/ prövas som reserv. Returnerar bara siffror.
+    async location(mode) {
+      const tried = [];
+      for (const path of ['/geolocation/option/location', '/geolocation/']) {
+        const res = await get(path, mode);
+        if (!res.ok) { tried.push(res.err); continue; }
+        const d = res.data && typeof res.data === 'object' && res.data.value && typeof res.data.value === 'object' ? res.data.value : res.data;
+        const lat = d && Number(d.latitude), lon = d && Number(d.longitude);
+        if (Number.isFinite(lat) && Number.isFinite(lon)) return { ok: true, lat, lon, via: path === '/geolocation/' ? 'reserv' : 'option' };
+        tried.push('fält saknas');
+      }
+      return { ok: false, err: tried.join(', ') };
+    },
 
     insightsLogs: (mode) => get('/insights/log/', mode, 10000),
     insightsEntries: (log, resolution = 'last24Hours', mode) =>

@@ -7,7 +7,7 @@ import { autoK, isK, canToggle, localKCount } from '../core/kguard.js';
 import * as smhi from '../adapters/smhi.js';
 import * as spot from '../adapters/spotpris.js';
 
-export const LAB_VERSION = '0.1.0';
+export const LAB_VERSION = '0.1.1';
 
 export const CHECKS = [
   { id: '1',  title: 'Moln: API-nyckel från webbläsaren (CORS)' },
@@ -108,10 +108,10 @@ export async function runPresence(homey, devices, set) {
   if (!res.ok) { set('7', 'fail', `användare: ${res.err}; närvaroenheter ${presenceDevices}`, { err: res.err, presenceDevices }); return; }
   const users = asList(res.data);
   const withFlag = users.filter(u => typeof u.present === 'boolean').length;
-  const present = users.filter(u => u.present === true).length;
+  // Antalet hemma redovisas inte: sammanfattningen visar förmåga, inte närvaroläge.
   set('7', withFlag > 0 ? 'ok' : 'warn',
-    `${users.length} användare, närvaroflagga på ${withFlag} (${present} hemma), Smart Presence-liknande enheter ${presenceDevices}`,
-    { users: users.length, withFlag, present, presenceDevices });
+    `${users.length} användare, närvaroflagga läsbar på ${withFlag}, Smart Presence-liknande enheter ${presenceDevices}`,
+    { users: users.length, withFlag, presenceDevices });
 }
 
 export async function runInsights(homey, set) {
@@ -141,13 +141,14 @@ export async function runSpot(zone, set) {
 
 export async function runSmhi(homey, manual, set) {
   set('12', 'run', '');
-  let lat = null, lon = null, src = 'manuell';
+  let lat = null, lon = null, src = 'manuell', posErr = 'ingen anslutning';
   if (manual && manual.lat && manual.lon) { lat = manual.lat; lon = manual.lon; }
   else if (homey && homey.active) {
-    const g = await homey.geolocation();
-    if (g.ok && g.data) { lat = g.data.latitude; lon = g.data.longitude; src = 'Homey'; }
+    const g = await homey.location();
+    if (g.ok) { lat = g.lat; lon = g.lon; src = `Homey (${g.via})`; }
+    else posErr = g.err;
   }
-  if (lat == null || lon == null) { set('12', 'fail', 'ingen position (geolocation saknas, ange manuellt)', { err: 'no-position' }); return; }
+  if (lat == null || lon == null) { set('12', 'fail', `ingen position från Homey: ${posErr} – ange manuellt`, { err: 'no-position' }); return; }
   const f = await smhi.forecast(lat, lon);
   if (f.ok) set('12', 'ok', `${f.api}: ${f.points} tidpunkter, ${f.ms} ms, position från ${src}`, { api: f.api, points: f.points, ms: f.ms, posSrc: src });
   else set('12', 'fail', f.err, { err: f.err, posSrc: src });
