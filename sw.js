@@ -1,7 +1,7 @@
 // sw.js – appskal offline. Cachar bara egna statiska filer.
 // Anrop till Homey, SMHI och spotpris går alltid direkt till nätet och cachas aldrig.
 // Höj CACHE vid varje release.
-const CACHE = 'hd-shell-v0.1.4';
+const CACHE = 'hd-shell-v0.1.5';
 const SHELL = [
   './', './index.html', './lab.html', './manifest.webmanifest', './icons/icon.svg',
   './css/tokens.css', './css/lab.css',

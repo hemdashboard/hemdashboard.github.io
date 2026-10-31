@@ -22,6 +22,9 @@ Version 0.1: testsidan `lab.html`, som prövar anslutningarna och lägger grunde
 
 ## Säkerhet
 - Content-Security-Policy i varje sida: bara egna skript, nätanrop endast till Homey (moln/lokalt), SMHI och elprisetjustnu.se.
+- Trusted Types krävs (`require-trusted-types-for 'script'`); enda policyn gäller service workerns URL.
+- Ramspärr i skript: meta-CSP kan inte sätta `frame-ancestors`, så sidan visas inte om den ligger i en ram.
+- Egen origin (`hemdashboard.github.io`). Inga andra repon i organisationen får ha GitHub Pages, eftersom de skulle dela origin.
 - Inga tredjepartsskript eller CDN.
 - API-nyckeln är personlig per användare och återkallas genom att den raderas i Homey.
 - PIN-krypteringen skyddar mot en lånad eller upplåst telefon, inte mot någon med full åtkomst till enheten.

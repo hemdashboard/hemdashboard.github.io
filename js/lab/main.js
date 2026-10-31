@@ -6,6 +6,20 @@ import { createHomey } from '../adapters/homey.js';
 import { ZONES } from '../adapters/spotpris.js';
 import * as C from './checks.js';
 
+// Ramspärr: meta-CSP kan inte sätta frame-ancestors, och GitHub Pages kan inte sätta
+// headers. Ligger sidan i en ram visas den aldrig (skydd mot klickkapning av reglagen).
+if (window.top !== window.self) {
+  throw new Error('framed');
+}
+document.documentElement.classList.remove('boot');
+
+// Trusted Types: enda tillåtna skript-URL är den egna service workern.
+const swUrl = window.trustedTypes
+  ? window.trustedTypes.createPolicy('hd-sw', {
+      createScriptURL: (u) => { if (u !== './sw.js') throw new Error('tt-url'); return u; },
+    }).createScriptURL('./sw.js')
+  : './sw.js';
+
 const $ = (id) => document.getElementById(id);
 const state = C.initialState();
 let homey = null;
@@ -227,5 +241,5 @@ renderChecks();
 showView();
 
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js').catch(() => { /* testsidan fungerar utan */ });
+  navigator.serviceWorker.register(swUrl).catch(() => { /* testsidan fungerar utan */ });
 }

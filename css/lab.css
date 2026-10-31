@@ -74,6 +74,9 @@ button.danger  { color: var(--bad); }
 button:disabled { opacity: .45; cursor: not-allowed; }
 
 .hidden { display: none !important; }
+/* Ramspärr: lab.html visas först när main.js har sett att sidan inte ligger i en ram.
+   I en sandlådad ram utan skript förblir sidan dold. */
+.boot { display: none !important; }
 
 /* Checklista */
 ol.checks { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }

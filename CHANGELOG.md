@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.5 – 2026-10-31
+- Flytt till egen origin `hemdashboard.github.io` (beslut 25).
+- CSP: Trusted Types krävs i båda sidorna; policyn `hd-sw` tillåter bara `./sw.js`.
+- Ramspärr: `lab.html` visas inte i en ram (meta-CSP saknar `frame-ancestors`).
+- K-spärr även i skrivvägen (`runToggle`), inte bara i renderingen.
+- Keystore: iterationstalet i lagringen kan inte sänka skyddet; korrupt lagring räknas som fel PIN i stället för ohanterat fel.
+- Cache `hd-shell-v0.1.5`.
+
 ## 0.1.4 – 2026-10-31
 - Test 5: prenumererar även per enhet (homey:device:<id>) för enheter med reglage och redovisar kvittenser, händelser per kanal och händelsetyper – utan ID eller värden.
 - Cache `hd-shell-v0.1.4`.

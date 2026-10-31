@@ -7,7 +7,7 @@ import { autoK, isK, canToggle, localKCount } from '../core/kguard.js';
 import * as smhi from '../adapters/smhi.js';
 import * as spot from '../adapters/spotpris.js';
 
-export const LAB_VERSION = '0.1.4';
+export const LAB_VERSION = '0.1.5';
 
 export const CHECKS = [
   { id: '1',  title: 'Moln: API-nyckel från webbläsaren (CORS)' },
@@ -66,6 +66,8 @@ export async function runDevices(homey, set) {
 }
 
 export async function runToggle(homey, device, set) {
+  // K-spärr även här, inte bara i renderingen: K eller ej växlingsbar → inget skrivanrop.
+  if (!canToggle(device)) { set('4b', 'fail', 'k-spärr', { err: 'k-guard' }); return null; }
   set('4b', 'run', '');
   const cur = device.capabilitiesObj && device.capabilitiesObj.onoff ? device.capabilitiesObj.onoff.value : null;
   const next = !cur;

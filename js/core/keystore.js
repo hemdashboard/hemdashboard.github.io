@@ -84,9 +84,11 @@ export async function save(secrets, pin) {
 export async function unlock(pin) {
   const raw = readStore(STORE_KEY);
   if (!raw) throw new Error('nothing-stored');
-  const blob = JSON.parse(raw);
   try {
-    const aes = await deriveKey(pin, unb64(blob.salt), blob.it || ITERATIONS);
+    const blob = JSON.parse(raw);
+    // Iterationstalet i lagringen får aldrig sänka skyddet under ITERATIONS.
+    const it = Math.max(Number(blob.it) || 0, ITERATIONS);
+    const aes = await deriveKey(pin, unb64(blob.salt), it);
     const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: unb64(blob.iv) }, aes, unb64(blob.ct));
     unlocked = JSON.parse(dec.decode(pt));
     writeStore(FAIL_KEY, null);
