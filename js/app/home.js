@@ -5,7 +5,7 @@
 import { deviceList } from './state.js';
 import { h, power, capVal, info } from './ui.js';
 import { el } from '../core/svg.js';
-import { hasControls, controlClass } from '../core/controls.js';
+import * as fav from '../core/favorites.js';
 import { presence, initials, ago, chargers, isCharging, flow } from '../core/activity.js';
 import { controlRow } from './roomsview.js';
 import { meter } from './energy.js';
@@ -29,19 +29,15 @@ export function presenceBody(now = Date.now()) {
 }
 
 // ---------- Snabbreglage ----------
-// Kaffebryggare som regeln tillåter. Lampor styrs i rumsvyn.
-
-export function quickDevices() {
-  return deviceList().filter(d => controlClass(d) === 'coffeemachine' && hasControls(d))
-    .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'sv'));
-}
+// Stjärnmärkta reglage (favorites.js). Standard utan sparad lista: kaffebryggarna.
+// Bara enheter i en reglageklass visas; regeln i controls.js avgör om reglaget är aktivt.
 
 export function quickBody() {
-  const ds = quickDevices();
-  if (!ds.length) return [];
+  const ds = fav.list(deviceList());
+  if (!ds.length) return [h('p.note', 'Stjärnmärk ett reglage i Rum så visas det här.')];
   const ul = h('ul.devs.quick');
   for (const d of ds) ul.append(controlRow(d).el);
-  return [ul];
+  return [ul, info('quick', 'Stjärnmärk lampor och kaffebryggare i Rum för att få dem här. Stjärnorna sparas bara i den här webbläsaren. Vad som får styras avgörs av samma regel som i Rum.')];
 }
 
 // ---------- Energiflöde: nät → hus → laddbox ----------

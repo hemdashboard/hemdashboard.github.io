@@ -5,12 +5,12 @@ Egen PWA som visar husets status och låter hushållet slå av och på enheter v
 **Repot innehåller ingen husdata.** Enheter, zoner och användare hämtas från Homey vid körning. Nycklar, Homey-ID, IP-adresser och positioner anges i webbläsaren och sparas krypterade lokalt – aldrig här.
 
 ## Status
-Version 0.5.0: hela dashboarden – översikt med närvaro och energiflöde vid laddning, el, smarta tips, väder, rum med planritning och rörelse, installerbar som app. Testsidan `lab.html` finns kvar för diagnos.
+Version 0.5.1: hela dashboarden – översikt med närvaro och energiflöde vid laddning, el, smarta tips, väder, rum med planritning och rörelse, installerbar som app. Testsidan `lab.html` finns kvar för diagnos.
 
 ## Vyer
 | Vy | Innehåll |
 |---|---|
-| Hem | Översikt: nyckeltal med trendbricka (effekt nu, i dag, månaden, pris nu), energiflöde nät → hus → laddbox när en laddbox laddar, närvaro per person (hemma/borta), snabbreglage för kaffebryggare, smarta tips, väder med närmaste dygnet och insikter (varmvatten, förbrukning mot vanligt, effekttopp, snittpris) |
+| Hem | Översikt: nyckeltal med trendbricka (effekt nu, i dag, månaden, pris nu), energiflöde nät → hus → laddbox när en laddbox laddar, närvaro per person (hemma/borta), snabbreglage för stjärnmärkta reglage (standard: kaffebryggare), smarta tips, väder med närmaste dygnet och insikter (varmvatten, förbrukning mot vanligt, effekttopp, snittpris) |
 | El | Nyckeltal, förbrukning i dag per timme och 7/30 dygn per dygn (Insights) med priset som bakgrund, spotpris i dag och i morgon, tips |
 | Väder | SMHI: nu, närmaste dygnet i klartext (nederbörd, kyla, vind), sol upp/ned, 24 timmar och 6 dygn |
 | Rum | Planritning överst (lokal bild med rummen utplacerade: tänt, rörelse, öppet). Ett kort per Homey-zon med enheter, grupperade per våning. Knapparna överst väljer vilka rum som visas. Tillverkare inom parentes. Reglage enligt regeln nedan |
@@ -49,6 +49,7 @@ Ritningen är husdata och finns aldrig i repot. Den laddas upp i appen (PNG, JPE
 | `js/core/controls.js` | Reglageregeln: endast klass `light` och `coffeemachine`, i rendering och skrivväg |
 | `js/core/rooms.js` | Automatiska rum per zon, egna rum sparade lokalt |
 | `js/core/activity.js` | Rörelse, närvaro, laddning och energiflöde ur enheterna |
+| `js/core/favorites.js` | Stjärnmärkta reglage för Snabbreglage, endast lokalt |
 | `js/core/planstore.js` | Planritningar i IndexedDB, endast lokalt |
 | `js/core/energy.js`, `js/core/prices.js`, `js/core/weather.js`, `js/core/sun.js`, `js/core/devinfo.js` | Rena beräkningar: förbrukning och kostnad, spotpris och tips, SMHI-tolkning och utsikt, sol upp/ned, tillverkare och varmvatten per enhet |
 | `js/core/svg.js` | Egna diagram och väderikoner i SVG |

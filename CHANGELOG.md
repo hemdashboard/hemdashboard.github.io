@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.1 – 2026-11-01
+- Stjärna på varje reglage (lampor och kaffebryggare): stjärnmärkta visas även under Snabbreglage på Hem. Sparas lokalt i webbläsaren som enhets-ID. Utan sparade stjärnor visas kaffebryggarna. Stjärnan ändrar inte reglageregeln.
+- Cache `hd-shell-v0.5.1`.
+
 ## 0.5.0 – 2026-11-01
 - Kaffebryggare som strömbrytare: ett uttag markerat som kaffebryggare i Homey (`class` socket, `virtualClass` coffeemachine) får reglage för `onoff`, även i skrivvägen (beslut 32). Snabbreglage på Hem.
 - Regelkontrollen visar varför lampor och kaffebryggare saknar reglage (klass, otillgänglig, ej skrivbar), utan namn eller ID.

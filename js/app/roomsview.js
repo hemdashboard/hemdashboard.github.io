@@ -11,6 +11,7 @@ import { h, num, toast, capVal } from './ui.js';
 import * as rooms from '../core/rooms.js';
 import { hasControls, canWrite, isControlClass, controlClass, whyNoControl } from '../core/controls.js';
 import { motion, ago } from '../core/activity.js';
+import * as fav from '../core/favorites.js';
 import { brand, hotWater, titledValues } from '../core/devinfo.js';
 
 const pending = new Map(); // id → antal pågående skrivningar
@@ -134,8 +135,19 @@ export function controlRow(d0) {
     range.addEventListener('input', () => { st.textContent = `${range.value} %`; });
     range.addEventListener('change', () => { dragging = false; write(d, 'dim', Number(range.value) / 100); });
   }
+  // Stjärna: visar reglaget även under Snabbreglage på Hem (sparas lokalt, ändrar inte regeln).
+  const star = h('button.star', {
+    'aria-label': `${d.name || 'Enhet'}: visa under Snabbreglage`,
+    onclick: () => {
+      const on = fav.toggle(d, deviceList());
+      if (on === null) { toast('Kunde inte spara stjärnan.'); return; }
+      star.setAttribute('aria-pressed', on ? 'true' : 'false');
+      toast(on ? 'Visas under Snabbreglage.' : 'Borttagen från Snabbreglage.');
+      rerender();
+    },
+  }, h('span', { 'aria-hidden': 'true' }, '★'));
   const li = h('li.dev', { dataset: { ctl: '1', kind: controlClass(d) || '' } },
-    h('div.dev-top', h('div.dev-text', name, st), sw), range);
+    h('div.dev-top', h('div.dev-text', name, st), h('div.dev-act', star, sw)), range);
   function update(nd) {
     d = nd;
     const avail = d.available !== false;
@@ -148,6 +160,7 @@ export function controlRow(d0) {
     nameTxt.textContent = d.name || '(namnlös)';
     st.textContent = !avail ? 'Otillgänglig' : on ? (typeof dim === 'number' && range ? `${Math.round(dim * 100)} %` : 'På') : 'Av';
     if (sw) { sw.setAttribute('aria-checked', on ? 'true' : 'false'); sw.disabled = !ctl; sw.hidden = !ctl; }
+    star.setAttribute('aria-pressed', fav.isFav(d, deviceList()) ? 'true' : 'false');
     if (range) {
       range.hidden = !ctl || !on;
       if (!dragging && document.activeElement !== range) range.value = String(Math.max(1, Math.round((typeof dim === 'number' ? dim : 0) * 100)));

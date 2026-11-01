@@ -506,3 +506,13 @@ svg.flow { display: block; width: 100%; max-width: 560px; height: auto; margin: 
 @media (prefers-reduced-motion: reduce) {
   .fl-dash, .motion[data-on="1"] svg path, button.pm[data-motion="1"] .pm-dot::after { animation: none; }
 }
+
+/* 0.5.1 – stjärna: visa reglaget under Snabbreglage */
+.dev-act { display: flex; align-items: center; gap: 4px; flex: 0 0 auto; }
+button.star {
+  width: var(--touch); min-height: var(--touch); padding: 0; display: grid; place-items: center;
+  background: transparent; border: 0; color: var(--surface-2-edge); font-size: 1.125rem; line-height: 1;
+}
+button.star:hover { background: transparent; color: var(--text-3); }
+button.star[aria-pressed="true"] { color: var(--warn); }
+li.dev[data-ctl="0"] button.star { visibility: hidden; }
