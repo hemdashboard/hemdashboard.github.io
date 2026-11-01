@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.4.0 – 2026-11-01
+- Ny stil efter Marcus valda mockup: neutral grafit utan blå ton, tunna ramar, små radier (6–12 px), rubriker och etiketter i vanlig sans i stället för versal mono, tabellsiffror.
+- Nyckeltalsrad överst på Hem och El: effekt nu, i dag, månaden och pris nu, med trendbricka (effekt och pris mot snittet i dag, förbrukning mot samma klockslag de senaste dygnen). 2×2 på mobil, en rad på dator.
+- Meny med ikoner: nederkant på mobil, sidomeny till vänster på dator (från 1080 px).
+- (i) ligger som ikonknapp i kortets övre högra hörn och öppnar förklaringen som en panel.
+- Diagram: tunt rutnät i båda led, effekt i lila, pris i orange, staplar neutrala, mint för billigaste fönster.
+- Periodknappar och rumschips med neutral markering; accenten används för status.
+- Diagrammens bredd räknas från den faktiska ytan.
+- Insikter: förbrukning hittills flyttad till nyckeltalen.
+- Cache `hd-shell-v0.4.0`.
+
 ## 0.3.3 – 2026-11-01
 - Rättat: alla Insights-hämtningar gav 404 i 0.3.2. Adaptern kortade loggens id (`homey:device:<x>:energy_power` → `energy_power`), men Homey kräver hela id:t i sökvägen (O 1/11). Id:t skickas nu oförändrat, som i 0.3.1 och testsidan.
 - Cache `hd-shell-v0.3.3`.

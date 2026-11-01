@@ -187,7 +187,55 @@ export function figures(now = Date.now()) {
     out.monthKr = c.kr; out.monthPartial = c.kwhPriced < c.kwh * 0.95;
     out.monthDays = daysBefore; out.monthDaysExpected = daysBefore;
   }
+  // Jämförelser för nyckeltalen
+  const sinceMidnight = now - day0;
+  if (Number.isFinite(out.todayKwh) && sinceMidnight > 15 * 60000) out.powerAvgToday = out.todayKwh * 1000 / (sinceMidnight / HOUR);
+  if (en.cum7 && en.cum7.length) {
+    const prev = [];
+    for (let k = 1; k <= 6; k += 1) {
+      const a = day0 - k * DAY;
+      const v = E.sumKwh(en.cum7, a, a + sinceMidnight);
+      if (v > 0) prev.push(v);
+    }
+    if (prev.length >= 3) out.usualKwh = prev.reduce((a, v) => a + v, 0) / prev.length;
+  }
+  if (en.priceDay && en.priceDay.length) {
+    const v = pricePerBucket(en.priceDay, day0, Math.max(day0 + HOUR, now), t => Math.max(day0 + HOUR, now));
+    if (v[0] !== null && Number.isFinite(v[0])) out.priceAvgToday = v[0];
+  }
   return out;
+}
+
+// ---------- Nyckeltal (Hem) ----------
+
+function pct(a, b) {
+  return Number.isFinite(a) && Number.isFinite(b) && b > 0 ? Math.round((a / b - 1) * 100) : null;
+}
+
+// Trendbricka: högre än jämförelsen är dåligt (röd) för förbrukning, effekt och pris.
+function badge(p) {
+  if (p === null) return null;
+  const tone = Math.abs(p) < 5 ? 'flat' : p > 0 ? 'bad' : 'good';
+  return h('span.badge', { dataset: { tone } }, `${p > 0 ? '+' : ''}${p} %`, h('span.arrow', { 'aria-hidden': 'true' }, p > 0 ? '↗' : p < 0 ? '↘' : '→'));
+}
+
+function kpi(label, value, sub, b, onOpen) {
+  return h(onOpen ? 'button.kpi' : 'div.kpi', onOpen ? { onclick: onOpen } : {}, h('span.kpi-label', label), h('span.kpi-val', value),
+    h('span.kpi-foot', h('span.kpi-sub', sub || ''), b));
+}
+
+export function kpiTiles(onOpen, now = Date.now()) {
+  const f = figures(now);
+  if (!f.meter) return [h('div.card.kpi-empty', note(state.devices.size ? 'Ingen elmätare hittad. Välj i Inställningar.' : 'Hämtar…'))];
+  return [
+    kpi('Effekt nu', power(f.powerNow), Number.isFinite(f.powerAvgToday) ? `snitt ${power(f.powerAvgToday)}` : 'snitt –',
+      badge(pct(f.powerNow, f.powerAvgToday)), onOpen),
+    kpi('I dag', `${num(f.todayKwh, 1)} kWh`, Number.isFinite(f.todayKr) ? kr(f.todayKr) : '–',
+      badge(pct(f.todayKwh, f.usualKwh)), onOpen),
+    kpi('Månaden', `${num(f.monthKwh, 0)} kWh`, Number.isFinite(f.monthKr) ? kr(f.monthKr) : '–', null, onOpen),
+    kpi('Pris nu', Number.isFinite(f.priceNow) ? `${num(f.priceNow, 2)} kr` : '–',
+      Number.isFinite(f.priceAvgToday) ? `snitt ${num(f.priceAvgToday, 2)}` : 'per kWh', badge(pct(f.priceNow, f.priceAvgToday)), onOpen),
+  ];
 }
 
 // ---------- Spotpris ----------
@@ -267,18 +315,6 @@ export function tipsBody(now = Date.now()) {
 
 function stat(label, value, sub, cls = '') {
   return h(`div.stat${cls ? `.${cls}` : ''}`, h('div.stat-label', label), h('div.stat-val', value), sub ? h('div.stat-sub', sub) : null);
-}
-
-export function elCardBody(now = Date.now()) {
-  const f = figures(now);
-  if (!f.meter) return [note(state.devices.size ? 'Ingen elmätare hittad. Välj i Inställningar.' : 'Hämtar…')];
-  return [
-    h('div.big', power(f.powerNow), h('span.unit', 'nu')),
-    h('div.stats',
-      stat('I dag', `${num(f.todayKwh, 1)} kWh`, Number.isFinite(f.todayKr) ? kr(f.todayKr) : null),
-      stat('Månaden', `${num(f.monthKwh, 0)} kWh`, Number.isFinite(f.monthKr) ? kr(f.monthKr) : null),
-      stat('Pris nu', Number.isFinite(f.priceNow) ? `${num(f.priceNow, 2)}` : '–', 'kr/kWh')),
-  ];
 }
 
 function rangeButtons(cur, onPick) {
@@ -388,7 +424,7 @@ function spotChart(now) {
     line = hrs.map((x, i) => (i < 24 && x.t <= now ? at(x.t) : null));
     if (!line.some(v => v !== null)) line = null;
   }
-  return barChart(bars, { width: chartWidth(), fmt: v => num(v, 1), labelEvery: span === 2 ? 6 : 3, now: cur, line, lineSameScale: true, label: 'Spotpris per timme' });
+  return barChart(bars, { width: chartWidth(), fmt: v => num(v, 1), labelEvery: span === 2 ? 6 : 3, now: cur, line, lineSameScale: true, lineCls: 'line price', label: 'Spotpris per timme' });
 }
 
 export function renderEnergy(root, now = Date.now()) {
@@ -396,21 +432,8 @@ export function renderEnergy(root, now = Date.now()) {
   const f = figures(now);
   const kids = [];
 
-  // Nu
-  if (!f.meter) kids.push(h('section.card', h('h2', 'El'), note(state.devices.size ? 'Ingen elmätare hittad. Välj en i Inställningar.' : 'Hämtar…')));
-  else {
-    const monthSub = Number.isFinite(f.monthKr)
-      ? `${kr(f.monthKr)}${f.monthDaysExpected && f.monthDays < f.monthDaysExpected ? ` · ${f.monthDays} av ${f.monthDaysExpected} dygn` : ''}${f.monthPartial ? ' · ofullständig' : ''}`
-      : null;
-    kids.push(h('section.card',
-      h('h2', 'El nu'),
-      h('div.big', power(f.powerNow), h('span.unit', 'effekt')),
-      h('div.stats',
-        stat('I dag', `${num(f.todayKwh, 1)} kWh`, Number.isFinite(f.todayKr) ? `${kr(f.todayKr)}${f.todayPartial ? ' · ofullständig' : ''}` : null),
-        stat('Månaden', `${num(f.monthKwh, 0)} kWh`, monthSub),
-        stat('Pris nu', Number.isFinite(f.priceNow) ? num(f.priceNow, 2) : '–', 'kr/kWh totalt')),
-      info('elnu', `Pris nu: Tibber, inkl. skatt och moms. Kostnad: ${f.costSrc || 'saknas'}. Förbrukning i dag: ${f.todayKwhSrc || '–'}. Månaden: förbrukning ur Insights${Number.isFinite(f.monthKr) ? ', kostnad = förbrukning per timme × Tibbers pris samma timme' : ''}.`)));
-  }
+  // Nyckeltal överst, som på Hem
+  kids.push(h('div.kpis.span2', ...kpiTiles(null, now)));
 
   // Tips direkt efter siffrorna (bredvid dem på bred skärm)
   kids.push(h('section.card', h('h2', 'Smarta tips'), h('div.tips', ...tipsBody(now))));
@@ -418,7 +441,8 @@ export function renderEnergy(root, now = Date.now()) {
   // Förbrukning
   const en = state.energy;
   if (f.meter) {
-    const box = h('section.card', h('div.card-head', h('h2', 'Förbrukning'),
+    const box = h('section.card', info('elnu', `Pris: Tibber, inkl. skatt och moms. Kostnad i dag: ${f.costSrc || 'saknas'}. Förbrukning i dag: ${f.todayKwhSrc || '–'}. Månaden: förbrukning ur Insights, kostnad = förbrukning per timme × Tibbers pris samma timme. Trendbrickorna jämför med snittet i dag (effekt, pris) och med samma klockslag de senaste dygnen (i dag).`),
+      h('div.card-head', h('h2', 'Förbrukning'),
       rangeButtons(p.energyRange, (k) => { setPref('energyRange', k); renderEnergy(root); })));
     if (!en) box.append(note('Hämtar Insights…'));
     else if (en.err || en.meterId !== f.meter.id) box.append(note('Hämtar Insights…'));
@@ -442,7 +466,7 @@ export function renderEnergy(root, now = Date.now()) {
     sbox.append(
       spotChart(now),
       h('div.legend', h('span.key.cheap', 'billigaste 5 h'), h('span.key.peak', 'pristopp'),
-        en && en.priceDay && en.priceDay.length ? h('span.key.line', 'Tibber i dag') : null),
+        en && en.priceDay && en.priceDay.length ? h('span.key.bg', 'Tibber i dag') : null),
       h('div.stats',
         td ? stat('I dag', `${num(td.avg, 2)}`, `${num(td.min, 2)}–${num(td.max, 2)} kr/kWh`) : null,
         tm ? stat('I morgon', `${num(tm.avg, 2)}`, `${num(tm.min, 2)}–${num(tm.max, 2)} kr/kWh`) : stat('I morgon', '–', 'publiceras ca 13')),

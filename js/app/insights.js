@@ -29,23 +29,6 @@ export function insightsBody(now = Date.now()) {
   const en = state.energy;
   const day0 = E.startOfDay(now);
 
-  // Förbrukning i dag mot snittet vid samma klockslag de senaste dygnen.
-  if (en && !en.err && Number.isFinite(f.todayKwh) && en.cum7 && en.cum7.length) {
-    const sinceMidnight = now - day0;
-    const prev = [];
-    for (let k = 1; k <= 6; k += 1) {
-      const a = day0 - k * DAY;
-      const v = E.sumKwh(en.cum7, a, a + sinceMidnight);
-      if (v > 0) prev.push(v);
-    }
-    if (prev.length >= 3) {
-      const avg = prev.reduce((s, v) => s + v, 0) / prev.length;
-      const diff = avg > 0 ? Math.round((f.todayKwh / avg - 1) * 100) : 0;
-      const txt = Math.abs(diff) < 5 ? 'som vanligt' : diff > 0 ? `${diff} % mer än vanligt` : `${-diff} % mindre än vanligt`;
-      rows.push(line('Förbrukning hittills', `${num(f.todayKwh, 1)} kWh`, `${txt} vid den här tiden (snitt ${num(avg, 1)} kWh)`, diff >= 25 ? 'warn' : ''));
-    }
-  }
-
   // Effekttopp i dag
   if (en && en.powDay && en.powDay.length) {
     const top = en.powDay.filter(p => p.t >= day0).reduce((a, p) => (!a || p.v > a.v ? p : a), null);
@@ -63,5 +46,5 @@ export function insightsBody(now = Date.now()) {
 
   if (!rows.length) return [note(state.devices.size ? 'Inga insikter än – Insights hämtas.' : 'Hämtar…')];
   return [h('ul.insights', ...rows),
-    info('ins', 'Varmvatten: varmvattengivaren på värmepumpen (topp om den finns). Förbrukning hittills jämförs med samma klockslag de senaste sex dygnen. Snittpris i dag = dagens kostnad delat med dagens förbrukning, inkl. skatt och moms.')];
+    info('ins', 'Varmvatten: varmvattengivaren på värmepumpen (topp om den finns). Snittpris i dag = dagens kostnad delat med dagens förbrukning, inkl. skatt och moms.')];
 }

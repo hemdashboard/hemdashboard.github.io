@@ -84,8 +84,9 @@ export function note(text, s = 'wait') {
 
 // Faktisk bredd i px för ett diagram i ett helbreddskort (body- och kortmarginaler avdragna).
 export function chartWidth() {
-  const vw = Math.min(document.documentElement.clientWidth || 360, 1120);
-  return Math.max(280, vw - 32 - 34);
+  const m = document.querySelector('main');
+  const w = m && m.clientWidth ? m.clientWidth : Math.min(document.documentElement.clientWidth || 360, 1120) - 32;
+  return Math.max(280, w - 34);
 }
 
 // Förklaring bakom en info-knapp (i). Öppet läge minns per nyckel under sessionen,

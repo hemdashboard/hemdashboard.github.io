@@ -1,37 +1,41 @@
 /* Hemdashboard – designtokens (tech-noir, mörkt som standard).
-   Palett från handovern 2026-10-31. Accent: mint.
+   Palett från handovern 2026-10-31, neutral grafit och skarpare form från 0.4. Accent: mint.
    Accenten används för handling och status, inte dekoration. */
 :root {
   color-scheme: dark;
 
-  /* Ytor (grafitsteg) */
-  --bg:            #0A0C0F;
-  --surface-1:     #12161B;
-  --surface-1-edge:#1B2026;
-  --surface-2:     #161B21;
-  --surface-2-edge:#1F252C;
+  /* Ytor: neutral grafit utan blå ton, nivåer i små steg och tunna ramar (0.4) */
+  --bg:            #111214;
+  --surface-1:     #18191C;
+  --surface-1-edge:#2A2C30;
+  --surface-2:     #1F2124;
+  --surface-2-edge:#2E3135;
+  --surface-hover: #24262A;
 
   /* Text */
-  --text-1: #ECEFF2;
-  --text-2: #A3ABB5;
-  --text-3: #8B939D;
+  --text-1: #EDEEF0;
+  --text-2: #A6A9AE;
+  --text-3: #8C9096;
 
-  /* Accent */
+  /* Accent: handling och status (på, live, billigt fönster) */
   --accent:       #22D39A;
   --accent-ink:   #06231A; /* text på accentyta */
-  --accent-dim:   #22D39A26;
+  --accent-dim:   #22D39A24;
 
   /* Semantik (dämpad) */
   --warn: #F2B45A;
   --info: #5AA9E6;
   --cold: #7FB8EA;
-  --bad:  #E5737A;
+  --bad:  #EF6F6C;
+  --good: #22D39A;
 
-  /* Diagram (neutrala staplar; accent bara för billigt fönster, varning för pristopp) */
-  --chart-bar:  #5C6A77;
-  --chart-cur:  #8B939D;
-  --chart-grid: #1F252C;
-  --chart-band: #ECEFF20D;
+  /* Diagramserier: staplar neutrala, effekt lila, pris orange */
+  --chart-bar:   #63696F;
+  --chart-cur:   #A6A9AE;
+  --chart-grid:  #26282C;
+  --chart-band:  #EDEEF00A;
+  --series-power:#8B7CF6;
+  --series-price:#F2B45A;
 
   /* Typografi – Inter/JetBrains Mono självhostas senare; systemfont som reserv */
   --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -44,10 +48,10 @@
   --fs-xl: 1.75rem;
 
   /* Form */
-  --r-xl: 24px;
-  --r-lg: 18px;
-  --r-md: 14px;
-  --r-sm: 12px;
+  --r-xl: 12px;
+  --r-lg: 10px;
+  --r-md: 8px;
+  --r-sm: 6px;
   --gap:  12px;
   --touch: 44px;
 

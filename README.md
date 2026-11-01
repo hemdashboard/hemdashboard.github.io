@@ -5,13 +5,13 @@ Egen PWA som visar husets status och låter hushållet slå av och på enheter v
 **Repot innehåller ingen husdata.** Enheter, zoner och användare hämtas från Homey vid körning. Nycklar, Homey-ID, IP-adresser och positioner anges i webbläsaren och sparas krypterade lokalt – aldrig här.
 
 ## Status
-Version 0.3.3: hela dashboarden – översikt, el, smarta tips, väder och rum, installerbar som app. Testsidan `lab.html` finns kvar för diagnos.
+Version 0.4.0: hela dashboarden – översikt, el, smarta tips, väder och rum, installerbar som app. Testsidan `lab.html` finns kvar för diagnos.
 
 ## Vyer
 | Vy | Innehåll |
 |---|---|
-| Hem | Översikt: el (effekt nu, i dag, månaden, pris nu), smarta tips, väder med närmaste dygnet och insikter (varmvatten, förbrukning mot vanligt, effekttopp, snittpris) |
-| El | Effekt och kostnad, förbrukning i dag per timme och 7/30 dygn per dygn (Insights) med priset som bakgrund, spotpris i dag och i morgon, tips |
+| Hem | Översikt: nyckeltal med trendbricka (effekt nu, i dag, månaden, pris nu), smarta tips, väder med närmaste dygnet och insikter (varmvatten, förbrukning mot vanligt, effekttopp, snittpris) |
+| El | Nyckeltal, förbrukning i dag per timme och 7/30 dygn per dygn (Insights) med priset som bakgrund, spotpris i dag och i morgon, tips |
 | Väder | SMHI: nu, närmaste dygnet i klartext (nederbörd, kyla, vind), sol upp/ned, 24 timmar och 6 dygn |
 | Rum | Ett kort per Homey-zon med enheter, grupperade per våning. Knapparna överst väljer vilka rum som visas. Tillverkare inom parentes. Reglage enligt regeln nedan |
 | Inst. | Elområde, val av elmätare och prisenhet, egna rum, kontroll och diagnos |

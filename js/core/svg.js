@@ -117,7 +117,7 @@ export function barChart(bars, opts = {}) {
         d += `${pen ? 'L' : 'M'}${x.toFixed(1)},${ly(v).toFixed(1)}`;
         pen = true;
       });
-      svg.append(el('path', { d, class: 'line' }));
+      svg.append(el('path', { d, class: opts.lineCls || 'line' }));
     }
   }
 
@@ -125,6 +125,7 @@ export function barChart(bars, opts = {}) {
   while (bw * every < 30 && every < n) every *= 2;
   bars.forEach((b, i) => {
     if (!b.label || i % every !== 0) return;
+    svg.insertBefore(el('line', { x1: padL + bw * i, x2: padL + bw * i, y1: padT, y2: padT + ih, class: 'grid v' }), svg.firstChild);
     svg.append(text(padL + bw * i + bw / 2, H - 6, b.label, 'axis'));
   });
   return svg;

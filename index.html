@@ -61,16 +61,13 @@
   <!-- Översikt -->
   <section class="view hidden" id="v-home">
     <div class="grid">
+      <div class="kpis span2" id="ovKpi" aria-label="Nyckeltal"></div>
       <section class="card">
-        <button class="card-link" data-go="energy"><h2>El</h2><span aria-hidden="true">→</span></button>
-        <div id="ovEl"></div>
-      </section>
-      <section class="card">
-        <button class="card-link" data-go="energy"><h2>Smarta tips</h2><span aria-hidden="true">→</span></button>
+        <button class="card-link" data-go="energy"><h2>Smarta tips</h2><span class="chev" aria-hidden="true">›</span></button>
         <div class="tips" id="ovTips"></div>
       </section>
       <section class="card">
-        <button class="card-link" data-go="weather"><h2>Väder</h2><span aria-hidden="true">→</span></button>
+        <button class="card-link" data-go="weather"><h2>Väder</h2><span class="chev" aria-hidden="true">›</span></button>
         <div id="ovWx"></div>
       </section>
       <section class="card">
@@ -134,11 +131,12 @@
   </section>
 
   <nav class="bar hidden" id="bar" aria-label="Vyer">
-    <button data-go="home" aria-pressed="true">Hem</button>
-    <button data-go="energy" aria-pressed="false">El</button>
-    <button data-go="weather" aria-pressed="false">Väder</button>
-    <button data-go="rooms" aria-pressed="false">Rum</button>
-    <button data-go="settings" aria-pressed="false">Inst.</button>
+    <div class="brandmark" aria-hidden="true">Hemdashboard</div>
+    <button data-go="home" aria-pressed="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/></svg><span>Hem</span></button>
+    <button data-go="energy" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 3L5 14h6l-1 7 8-11h-6z"/></svg><span>El</span></button>
+    <button data-go="weather" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 18h10a4 4 0 0 0 .6-7.95A6 6 0 0 0 6.2 11 3.5 3.5 0 0 0 7 18z"/></svg><span>Väder</span></button>
+    <button data-go="rooms" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1"/><rect x="13" y="4" width="7" height="7" rx="1"/><rect x="4" y="13" width="7" height="7" rx="1"/><rect x="13" y="13" width="7" height="7" rx="1"/></svg><span>Rum</span></button>
+    <button data-go="settings" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg><span>Inst.</span></button>
   </nav>
 </main>
 <div class="toast hidden" id="toast" role="status" aria-live="polite"></div>

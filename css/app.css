@@ -23,6 +23,7 @@ header.top h1 { color: var(--text-1); }
   .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .grid .span2 { grid-column: 1 / -1; }
   #energyRoot > .card:nth-child(n+3) { grid-column: 1 / -1; }
+  #energyRoot > .card:nth-child(2) { grid-column: 1 / -1; }
   #weatherRoot > .card:nth-child(2) { grid-column: 1 / -1; }
 }
 .grid > .card { min-width: 0; }
@@ -271,3 +272,143 @@ ul.insights li.warn { border-left-color: var(--warn); }
 .ins-label { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--text-3); text-transform: uppercase; letter-spacing: .06em; align-self: center; }
 .ins-val { font-family: var(--font-mono); font-size: var(--fs-md); color: var(--text-1); font-variant-numeric: tabular-nums; text-align: right; }
 .ins-sub { grid-column: 1 / -1; font-size: var(--fs-xs); color: var(--text-2); }
+
+/* =====================================================================
+   0.4 – stil efter mockupen: neutral grafit, tunna ramar, små radier,
+   rubriker i vanlig sans (inga versala mono-etiketter), nyckeltalsrad,
+   ikonmeny (nederkant på mobil, sidomeny på dator). Lägger sig ovanpå
+   reglerna ovan; innehåll och reglageregel är oförändrade.
+   ===================================================================== */
+
+body { font-feature-settings: "tnum" 1, "cv11" 1; }
+
+/* Rubriker och etiketter: sans, gemener/versaler som skrivna */
+h1, h2, .stat-label, .tip-head, .kpi-label, p.sect-label, h2.group, .ins-label, label, .seg button,
+nav.bar button, .clock, .live, .rc-meta, .room-meta, .dev-state, .ro-val, .stat-val, .stat-sub, .tip-val,
+.big, .kpi-val, .ins-val, ul.days .d-name, ul.days .d-temp, ul.days .d-more, .legend, p.mono, ul.diag {
+  font-family: var(--font-sans); text-transform: none; letter-spacing: 0;
+}
+h1 { font-size: var(--fs-lg); font-weight: 600; color: var(--text-1); }
+.card h2, h2.card-title, button.card-link h2, .card-head h2 { font-size: var(--fs-md); font-weight: 500; color: var(--text-1); margin: 0; }
+h2.group, p.sect-label { font-size: var(--fs-sm); font-weight: 500; color: var(--text-2); }
+.stat-label, .tip-head, .kpi-label, .ins-label { font-size: var(--fs-xs); color: var(--text-2); font-weight: 400; }
+label { font-size: var(--fs-sm); color: var(--text-2); }
+.big { font-weight: 600; letter-spacing: -0.01em; }
+.big .unit { text-transform: none; letter-spacing: 0; font-family: var(--font-sans); }
+
+/* Ytor: tunna ramar, små radier, kort utan fyllda innerytor */
+.card { background: var(--surface-1); border: 1px solid var(--surface-1-edge); border-radius: var(--r-lg); padding: 16px; }
+.stat, .wx-mini { background: transparent; border: 1px solid var(--surface-1-edge); border-radius: var(--r-md); }
+input, select { background: var(--bg); border-color: var(--surface-2-edge); border-radius: var(--r-md); }
+button { border-radius: var(--r-md); }
+button:not(.primary):not(.switch):not(.chip):not(.kpi):not(.room):not(.card-link):hover { background: var(--surface-hover); }
+
+/* Huvud */
+header.top { padding: 10px 0; border-bottom: 1px solid var(--surface-1-edge); margin-bottom: 4px; }
+.clock { font-size: var(--fs-sm); color: var(--text-3); }
+.live { font-size: var(--fs-xs); padding: 4px 10px; border: 1px solid var(--surface-2-edge); border-radius: 999px; }
+.live[data-s="live"] { border-color: #22D39A55; }
+
+/* Kortrubrik: titel till vänster, (i) och knappar till höger */
+button.card-link { justify-content: flex-start; gap: 6px; width: auto; min-height: 32px; margin: 0 0 12px; }
+button.card-link .chev { font-size: var(--fs-lg); line-height: 1; color: var(--text-3); }
+button.card-link:hover .chev, button.card-link:focus-visible .chev { color: var(--accent); }
+h2.card-title { margin-bottom: 12px; }
+.card > h2:first-child { margin-bottom: 12px; padding-right: 44px; }
+.card-head { margin-bottom: 12px; padding-right: 44px; }
+
+/* (i) som ikonknapp i kortets övre högra hörn; förklaringen öppnas som en panel under */
+.card > details.info, .card details.info { position: absolute; top: 12px; right: 12px; margin: 0; }
+details.info summary { width: 32px; height: 32px; border-radius: var(--r-md); border-color: var(--surface-2-edge); font-family: var(--font-sans); }
+details.info p {
+  position: absolute; right: 0; top: 38px; z-index: 4; width: min(320px, calc(100vw - 64px));
+  margin: 0; padding: 12px 14px; background: var(--surface-2); border: 1px solid var(--surface-2-edge);
+  border-radius: var(--r-md); color: var(--text-2); font-size: var(--fs-sm); line-height: 1.45;
+}
+
+/* Nyckeltal: 2×2 på mobil, en rad på dator */
+.kpis { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--gap); }
+@media (min-width: 760px) { .kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.kpi {
+  display: grid; gap: 6px; align-content: start; text-align: left; min-height: 104px; padding: 14px;
+  background: var(--surface-1); border: 1px solid var(--surface-1-edge); border-radius: var(--r-lg);
+  transition: border-color var(--dur) var(--ease);
+}
+button.kpi { cursor: pointer; }
+button.kpi:hover, button.kpi:focus-visible { border-color: var(--surface-2-edge); background: var(--surface-1); }
+.kpi-val { font-size: 1.375rem; font-weight: 600; color: var(--text-1); letter-spacing: -0.01em; }
+.kpi-foot { display: flex; justify-content: space-between; align-items: center; gap: 6px; min-height: 22px; }
+.kpi-sub { font-size: var(--fs-xs); color: var(--text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.kpi-empty { grid-column: 1 / -1; }
+.badge { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 3px; padding: 2px 6px; border-radius: var(--r-sm);
+         font-size: 0.6875rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.badge[data-tone="bad"]  { color: var(--bad);  background: #EF6F6C1F; }
+.badge[data-tone="good"] { color: var(--good); background: #22D39A1F; }
+.badge[data-tone="flat"] { color: var(--text-2); background: #EDEEF00F; }
+
+/* Siffror i statistikrutor */
+.stat-val { font-weight: 600; }
+.stat-sub { color: var(--text-3); }
+
+/* Tips och insikter: rad med tunn vänsterkant */
+.tip { border-left-width: 2px; padding-left: 12px; }
+.tip-val { font-size: var(--fs-md); font-weight: 600; }
+.ins-val { font-weight: 600; }
+
+/* Periodknappar: neutral markering som i mockupen (accenten sparas till status) */
+.seg { border-radius: var(--r-md); border-color: var(--surface-2-edge); }
+.seg button { font-size: var(--fs-sm); color: var(--text-2); min-height: 34px; }
+.seg button + button { border-left: 1px solid var(--surface-2-edge); }
+.seg button[aria-pressed="true"] { background: var(--surface-hover); color: var(--text-1); }
+
+/* Rum: valda chips neutralt markerade */
+.chip { border-radius: var(--r-md); min-height: 34px; font-size: var(--fs-sm); background: transparent; border-color: var(--surface-2-edge); }
+.chip[aria-pressed="true"] { background: var(--surface-hover); border-color: var(--text-3); color: var(--text-1); }
+.roomcard { padding: 14px 16px; }
+.rc-head h3 { font-weight: 500; }
+ul.ros { border-top-style: solid; }
+
+/* Diagram: tunt rutnät i båda led, sans-etiketter, serier i egna färger */
+svg.chart .grid { stroke: var(--chart-grid); }
+svg.chart .grid.v { stroke-dasharray: 2 3; }
+svg.chart .axis { font-family: var(--font-sans); font-size: 11px; }
+svg.chart .line { stroke: var(--series-power); stroke-width: 1.75; }
+svg.chart .line.price { stroke: var(--series-price); }
+svg.chart .line.temp { stroke: var(--text-1); }
+svg.chart .bgline { stroke: var(--series-price); stroke-width: 1.75; }
+svg.chart .bgarea { fill: var(--series-price); fill-opacity: .08; }
+svg.chart .bg-axis { fill: var(--series-price); }
+.key.line::before { background: var(--series-power); }
+.key.bg::before { background: var(--series-price); }
+.legend { gap: 6px 16px; font-size: var(--fs-xs); color: var(--text-2); }
+
+/* Meny med ikoner: nederkant på mobil */
+nav.bar { gap: 0; padding: 6px 4px calc(6px + env(safe-area-inset-bottom)); }
+nav.bar .brandmark { display: none; }
+nav.bar button {
+  display: grid; justify-items: center; gap: 2px; min-height: 52px; padding: 4px 2px;
+  font-size: 0.6875rem; color: var(--text-3); border-radius: var(--r-md);
+}
+nav.bar button svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; }
+nav.bar button[aria-pressed="true"] { color: var(--text-1); }
+nav.bar button[aria-pressed="true"] svg { stroke: var(--accent); }
+
+/* Dator: sidomeny till vänster som i mockupen */
+@media (min-width: 1080px) {
+  body { padding: 0 24px 32px calc(220px + 24px); }
+  main { max-width: 1240px; }
+  nav.bar {
+    top: 0; bottom: 0; right: auto; width: 220px; flex-direction: column; justify-content: flex-start;
+    gap: 2px; padding: 16px 12px; border-top: 0; border-right: 1px solid var(--surface-1-edge); background: var(--bg);
+  }
+  nav.bar .brandmark { display: block; padding: 6px 12px 18px; font-weight: 600; color: var(--text-1); font-size: var(--fs-md); }
+  nav.bar button {
+    flex: 0 0 auto; max-width: none; width: 100%; display: flex; align-items: center; justify-items: start; gap: 12px;
+    min-height: 40px; padding: 0 12px; font-size: var(--fs-sm); text-align: left;
+  }
+  nav.bar button[aria-pressed="true"] { background: var(--surface-1); box-shadow: inset 2px 0 0 var(--accent); }
+  nav.bar button svg { width: 18px; height: 18px; }
+  .toast { bottom: 24px; }
+  #v-home .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  #v-home .grid .span2 { grid-column: 1 / -1; }
+}

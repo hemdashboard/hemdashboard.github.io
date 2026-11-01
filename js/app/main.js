@@ -14,7 +14,7 @@ import * as weather from './weather.js';
 import * as roomsview from './roomsview.js';
 import * as insights from './insights.js';
 
-export const APP_VERSION = '0.3.3';
+export const APP_VERSION = '0.4.0';
 
 // Ramspärr: meta-CSP kan inte sätta frame-ancestors. I en ram körs sidan aldrig.
 if (window.top !== window.self) {
@@ -231,7 +231,7 @@ function render() {
   if (!keystore.isUnlocked()) return;
   const v = state.view;
   if (v === 'home') {
-    $('ovEl').replaceChildren(...energy.elCardBody());
+    $('ovKpi').replaceChildren(...energy.kpiTiles(() => setView('energy')));
     $('ovTips').replaceChildren(...energy.tipsBody());
     $('ovWx').replaceChildren(...weather.weatherCardBody());
     $('ovIns').replaceChildren(...insights.insightsBody());
@@ -379,7 +379,7 @@ function teardown() {
   roomsview.clearPending();
   energy.resetLogs();
   weather.forgetPosition();
-  for (const id of ['ovEl', 'ovTips', 'ovWx', 'ovIns', 'energyRoot', 'weatherRoot', 'roomsRoot']) $(id).replaceChildren();
+  for (const id of ['ovKpi', 'ovTips', 'ovWx', 'ovIns', 'energyRoot', 'weatherRoot', 'roomsRoot']) $(id).replaceChildren();
   setLive('off');
 }
 
