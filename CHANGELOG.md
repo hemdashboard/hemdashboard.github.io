@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.7.0 – 2026-11-01
+- Hem: kort för lås och larm mellan nyckeltalen och närvaro. Endast visning (K), inga reglage.
+  - Lås: låst eller olåst med tid för senaste ändring, dörren öppen eller stängd och lågt batteri. Mint = låst, gult = olåst eller lågt batteri, rött = olåst och dörren öppen.
+  - Larm: larmläget (Avstängt, Borta, Hemma, Schema …) med tid, antal kameror och senaste händelse. Rött vid utlöst larm. Tryck öppnar Kamera.
+- Ny vy Kamera: larmläget överst och en rad per kamera och dörrklocka med senaste händelse (rörelse, person, ringklocka, fordon, djur) och batteri (gult under 20 %).
+- Enheterna hittas på klass (`lock`, `homealarm`, `camera`, `doorbell`), aldrig på ID eller namn. Namn på igenkända ansikten visas inte. Åtgärdskapabiliteter (t.ex. ögonblicksbild) anropas aldrig.
+- Ögonblicksbilder ingår inte: Homey ger ingen bild att läsa.
+- Cache `hd-shell-v0.7.0`.
+
 ## 0.6.4 – 2026-11-01
 - Planritningen visar samma temperaturbricka som rumskorten ovanför rumsnamnet: termometer, värde i bandets färg och trendpil. Utomhusytor med utomhusskalan (frostkant under 5°).
 - Endast kopplade rum med temperatursensor. Brickan tar inte emot tryck; tryck på rummet öppnar det som förut.

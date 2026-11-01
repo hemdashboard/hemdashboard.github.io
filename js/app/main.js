@@ -16,8 +16,9 @@ import * as insights from './insights.js';
 import * as home from './home.js';
 import * as plan from './plan.js';
 import * as temps from './temps.js';
+import * as security from './security.js';
 
-export const APP_VERSION = '0.6.4';
+export const APP_VERSION = '0.7.0';
 
 // Ramspärr: meta-CSP kan inte sätta frame-ancestors. I en ram körs sidan aldrig.
 if (window.top !== window.self) {
@@ -43,7 +44,7 @@ let lastConn = {};               // felkategori per väg, t.ex. { cloud: 'networ
 let energyAt = 0;
 const refetchTimers = new Map();
 
-const TITLES = { home: 'Hem', energy: 'El', weather: 'Väder', rooms: 'Rum', settings: 'Inställningar' };
+const TITLES = { home: 'Hem', energy: 'El', weather: 'Väder', rooms: 'Rum', cameras: 'Kamera', settings: 'Inställningar' };
 
 // ---------- Anslutning ----------
 
@@ -239,6 +240,9 @@ function render() {
     const fc = home.flowCard();
     $('ovFlow').replaceChildren(...(fc ? [fc] : []));
     $('ovFlow').classList.toggle('hidden', !fc);
+    const sec = security.secCards(() => setView('cameras'));
+    $('ovSec').replaceChildren(...sec);
+    $('ovSec').classList.toggle('hidden', !sec.length);
     $('ovPresence').replaceChildren(...home.presenceBody());
     if (!roomsview.hasPending()) {
       const q = home.quickBody();
@@ -256,6 +260,8 @@ function render() {
     temps.maybeLoad(scheduleRender); // trendens referenser, högst var tionde minut
     plan.renderPlan($('planRoot'));
     roomsview.renderRooms($('roomsRoot'));
+  } else if (v === 'cameras') {
+    security.renderCameras($('camerasRoot'));
   } else if (v === 'settings') {
     renderSettings();
   }
@@ -396,7 +402,7 @@ function teardown() {
   energy.resetLogs();
   temps.reset();
   weather.forgetPosition();
-  for (const id of ['ovKpi', 'ovFlow', 'ovPresence', 'ovQuick', 'ovTips', 'ovWx', 'ovIns', 'energyRoot', 'weatherRoot', 'planRoot', 'roomsRoot']) $(id).replaceChildren();
+  for (const id of ['ovKpi', 'ovFlow', 'ovPresence', 'ovQuick', 'ovTips', 'ovWx', 'ovIns', 'energyRoot', 'weatherRoot', 'planRoot', 'roomsRoot', 'ovSec', 'camerasRoot']) $(id).replaceChildren();
   setLive('off');
 }
 

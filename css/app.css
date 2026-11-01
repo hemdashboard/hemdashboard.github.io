@@ -540,3 +540,44 @@ button.star {
 button.star:hover { background: transparent; color: var(--text-3); }
 button.star[aria-pressed="true"] { color: var(--warn); }
 li.dev[data-ctl="0"] button.star { visibility: hidden; }
+
+/* Lås, larm och kameror (0.7.0) – endast visning. Mint = säkert, gult = uppmärksamma, rött = agera. */
+.seccards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--gap); }
+@media (min-width: 760px) { .seccards { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.sec { display: grid; gap: 10px; align-content: start; min-width: 0; padding: 14px; text-align: left; }
+button.sec-link { width: 100%; font: inherit; color: inherit; cursor: pointer; }
+button.sec-link:hover, button.sec-link:focus-visible { border-color: var(--surface-2-edge); }
+.sec-head { display: flex; justify-content: space-between; align-items: center; gap: 6px; min-width: 0; }
+.sec-label { font-size: var(--fs-xs); color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sec .chev { color: var(--text-3); font-size: var(--fs-lg); line-height: 1; }
+.tag { flex: none; font-family: var(--font-mono); font-size: 0.625rem; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--text-3); border: 1px solid var(--surface-2-edge); border-radius: 4px; padding: 1px 5px; }
+.sec-big { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.sec-ico, .cam-ico { flex: none; width: 44px; height: 44px; display: grid; place-items: center; border-radius: var(--r-lg);
+  background: var(--surface-2); border: 1px solid var(--surface-2-edge); color: var(--text-2); }
+.sec-ico svg, .cam-ico svg { width: 24px; height: 24px; }
+.sec svg, .cam svg { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.sec-txt, .cam-txt { display: grid; gap: 2px; min-width: 0; }
+.sec-state { font-size: var(--fs-lg); font-weight: 600; line-height: 1.15; color: var(--text-1); }
+.sec-sub, .cam-ev, .cam-bat { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--text-3); }
+.sec-row { display: flex; align-items: center; gap: 6px; margin: 0; font-size: var(--fs-sm); color: var(--text-2); }
+.sec-row svg { flex: none; width: 16px; height: 16px; }
+.sec-row[data-tone="good"] { color: var(--accent); }
+.sec-row[data-tone="warn"] { color: var(--warn); }
+.sec-row[data-tone="bad"] { color: var(--bad); }
+.sec[data-tone="good"] .sec-ico { color: var(--accent); background: var(--accent-dim); border-color: #22D39A55; }
+.sec[data-tone="good"] .sec-state { color: var(--accent); }
+.sec[data-tone="warn"] .sec-ico { color: var(--warn); background: #F2B45A1F; border-color: #F2B45A55; }
+.sec[data-tone="warn"] .sec-state { color: var(--warn); }
+.sec[data-tone="bad"] { border-color: #EF6F6C66; }
+.sec[data-tone="bad"] .sec-ico { color: var(--bad); background: #EF6F6C1F; border-color: #EF6F6C66; }
+.sec[data-tone="bad"] .sec-state { color: var(--bad); }
+.camlist { display: grid; gap: var(--gap); max-width: 720px; }
+.sec-wide .sec-state { font-size: var(--fs-xl); }
+.cam { display: flex; align-items: center; gap: 12px; padding: 12px 14px; min-width: 0; }
+.cam-txt { flex: 1; }
+.cam-name { font-size: var(--fs-md); color: var(--text-1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cam[data-live="1"] .cam-ico { color: var(--info); border-color: #5AA9E666; }
+.cam[data-live="1"] .cam-ev { color: var(--info); }
+.cam[data-off="1"] { opacity: .6; }
+.cam-bat[data-low="1"] { color: var(--warn); }
