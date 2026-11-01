@@ -5,7 +5,7 @@ Egen PWA som visar husets status och låter hushållet slå av och på enheter v
 **Repot innehåller ingen husdata.** Enheter, zoner och användare hämtas från Homey vid körning. Nycklar, Homey-ID, IP-adresser och positioner anges i webbläsaren och sparas krypterade lokalt – aldrig här.
 
 ## Status
-Version 0.3.2: hela dashboarden – översikt, el, smarta tips, väder och rum, installerbar som app. Testsidan `lab.html` finns kvar för diagnos.
+Version 0.3.3: hela dashboarden – översikt, el, smarta tips, väder och rum, installerbar som app. Testsidan `lab.html` finns kvar för diagnos.
 
 ## Vyer
 | Vy | Innehåll |

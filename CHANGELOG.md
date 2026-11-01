@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.3 – 2026-11-01
+- Rättat: alla Insights-hämtningar gav 404 i 0.3.2. Adaptern kortade loggens id (`homey:device:<x>:energy_power` → `energy_power`), men Homey kräver hela id:t i sökvägen (O 1/11). Id:t skickas nu oförändrat, som i 0.3.1 och testsidan.
+- Cache `hd-shell-v0.3.3`.
+
 ## 0.3.2 – 2026-11-01
 - Rättat: oändlig loop i timfördelningen när 30-dagarsdata korsar omställningen till vintertid (02:00 finns två gånger). `startOfHour` räknar nu i UTC, och loopen har en spärr mot att stå still.
 - Effektlinjen i förbrukningsdiagrammet syntes inte: Pulse loggar effekt som `energy_power`, inte `measure_power` (O 1/11). Båda prövas nu, och förklaringen visas bara när linjen finns.

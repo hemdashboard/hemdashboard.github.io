@@ -7,7 +7,7 @@ import { hasControls, isControlClass } from '../core/controls.js';
 import * as smhi from '../adapters/smhi.js';
 import * as spot from '../adapters/spotpris.js';
 
-export const LAB_VERSION = '0.3.0';
+export const LAB_VERSION = '0.3.3';
 
 export const CHECKS = [
   { id: '1',  title: 'Moln: API-nyckel från webbläsaren (CORS)' },

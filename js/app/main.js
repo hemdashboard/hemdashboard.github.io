@@ -14,7 +14,7 @@ import * as weather from './weather.js';
 import * as roomsview from './roomsview.js';
 import * as insights from './insights.js';
 
-export const APP_VERSION = '0.3.2';
+export const APP_VERSION = '0.3.3';
 
 // Ramspärr: meta-CSP kan inte sätta frame-ancestors. I en ram körs sidan aldrig.
 if (window.top !== window.self) {
