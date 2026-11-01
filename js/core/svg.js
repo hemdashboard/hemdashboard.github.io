@@ -29,10 +29,12 @@ function niceMax(v) {
 
 // Stapeldiagram med valfri linje (andra serie, egen skala till höger utan axel).
 // bars: [{ v: number|null, label?: string, cls?: string, title?: string }]
-// opts: { width, height, fmt(v), labelEvery, now (index), line: [number|null], lineSameScale, minMax }
+// opts: { width, height, fmt(v), labelEvery, now (index), line: [number|null], lineSameScale, minMax,
+//         bg: [number|null], bgFmt(v) }
 export function barChart(bars, opts = {}) {
   const W = Math.max(280, Math.round(opts.width || 640)), H = opts.height || 200;
-  const padL = 40, padR = 8, padT = 10, padB = 22;
+  const hasBg = Array.isArray(opts.bg) && opts.bg.some(v => v !== null && Number.isFinite(v));
+  const padL = 40, padR = hasBg ? 40 : 8, padT = 10, padB = 22;
   const iw = W - padL - padR, ih = H - padT - padB;
   const vals = bars.map(b => b.v).filter(v => v !== null && Number.isFinite(v));
   const lineVals = opts.lineSameScale && Array.isArray(opts.line) ? opts.line.filter(v => v !== null && Number.isFinite(v)) : [];
@@ -56,6 +58,35 @@ export function barChart(bars, opts = {}) {
   }
   if (lo < 0) svg.append(el('line', { x1: padL, x2: W - padR, y1: y(0), y2: y(0), class: 'zero' }));
 
+  // Bakgrund: en andra serie (t.ex. pris per stapel) som trappsteg bakom staplarna,
+  // med egen skala och etiketter till höger. opts.bg: [number|null], opts.bgFmt(v).
+  let bgTop = null;
+  if (hasBg) {
+    const bv = opts.bg.filter(v => v !== null && Number.isFinite(v));
+    const blo = Math.min(0, ...bv), bhi = niceMax(Math.max(...bv, 0));
+    const by = (v) => padT + ih - ((v - blo) / (bhi - blo || 1)) * ih;
+    let d = '', pen = false;
+    opts.bg.forEach((v, i) => {
+      if (v === null || !Number.isFinite(v)) { if (pen) d += `V${by(blo).toFixed(1)}Z`; pen = false; return; }
+      const x0 = padL + bw * i, x1 = x0 + bw, yy = by(v).toFixed(1);
+      d += pen ? `H${x0.toFixed(1)}V${yy}H${x1.toFixed(1)}` : `M${x0.toFixed(1)},${by(blo).toFixed(1)}V${yy}H${x1.toFixed(1)}`;
+      pen = true;
+    });
+    if (pen) d += `V${by(blo).toFixed(1)}Z`;
+    svg.append(el('path', { d, class: 'bgarea' }));
+    // Trappans överkant ritas ovanpå staplarna (läggs till sist), så att priset syns.
+    let top = '', on = false;
+    opts.bg.forEach((v, i) => {
+      if (v === null || !Number.isFinite(v)) { on = false; return; }
+      const x0 = padL + bw * i, x1 = x0 + bw, yy = by(v).toFixed(1);
+      top += on ? `V${yy}H${x1.toFixed(1)}` : `M${x0.toFixed(1)},${yy}H${x1.toFixed(1)}`;
+      on = true;
+    });
+    bgTop = el('path', { d: top, class: 'bgline' });
+    const bf = opts.bgFmt || ((v) => String(Math.round(v * 100) / 100));
+    for (const v of [bhi / 2, bhi]) svg.append(text(W - padR + 6, by(v) + 4, bf(v), 'axis bg-axis', 'start'));
+  }
+
   if (opts.now !== undefined && opts.now !== null && opts.now >= 0 && opts.now < n) {
     const x = padL + bw * opts.now;
     svg.append(el('rect', { x, y: padT, width: bw, height: ih, class: 'nowband' }));
@@ -69,6 +100,8 @@ export function barChart(bars, opts = {}) {
     if (b.title) { const t = el('title'); t.textContent = b.title; r.append(t); }
     svg.append(r);
   });
+
+  if (bgTop) svg.append(bgTop);
 
   if (Array.isArray(opts.line)) {
     const lv = opts.line.filter(v => v !== null && Number.isFinite(v));

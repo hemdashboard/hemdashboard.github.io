@@ -54,14 +54,14 @@ function avgOver(series, a, b) {
 }
 
 // Billigaste sammanhängande fönster om `hours` timmar som startar mellan `from` och
-// `from + horizonH` och slutar senast där prisdata tar slut. Kandidater: nu (`from`) och
-// varje periodgräns (15 eller 60 min) därefter.
+// `from + horizonH` och slutar senast där prisdata tar slut. Kandidater: pågående periods
+// start och varje periodgräns (15 eller 60 min) därefter, så att tiderna blir jämna.
 // Returnerar { t, e, avg, ref } där ref är medelpriset över hela sökhorisonten, eller null.
 export function cheapestWindow(series, from, hours, horizonH = 24) {
   if (!series.length) return null;
   const len = hours * 3600000;
   const limit = Math.min(from + horizonH * 3600000, series[series.length - 1].e);
-  const starts = [from, ...series.filter(x => x.t > from).map(x => x.t)];
+  const starts = series.filter(x => x.e > from).map(x => x.t);
   let best = null;
   for (const s of starts) {
     if (s + len > limit) break;

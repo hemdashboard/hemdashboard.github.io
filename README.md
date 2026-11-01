@@ -5,15 +5,15 @@ Egen PWA som visar husets status och låter hushållet slå av och på enheter v
 **Repot innehåller ingen husdata.** Enheter, zoner och användare hämtas från Homey vid körning. Nycklar, Homey-ID, IP-adresser och positioner anges i webbläsaren och sparas krypterade lokalt – aldrig här.
 
 ## Status
-Version 0.3: hela dashboarden i en första version – översikt, el, smarta tips, väder och rum. Testsidan `lab.html` finns kvar för diagnos.
+Version 0.3.1: hela dashboarden – översikt, el, smarta tips, väder och rum, installerbar som app. Testsidan `lab.html` finns kvar för diagnos.
 
 ## Vyer
 | Vy | Innehåll |
 |---|---|
 | Hem | Kort för el (effekt nu, i dag, månaden, pris nu), smarta tips, väder och rum |
-| El | Effekt och kostnad, förbrukning i dag per timme och 7/30 dygn per dygn (Insights), spotpris i dag och i morgon, tips |
-| Väder | SMHI: nu, 24 timmar och 6 dygn. Endast visning |
-| Rum | Ett rum per Homey-zon med enheter, reglage enligt regeln nedan |
+| El | Effekt och kostnad, förbrukning i dag per timme och 7/30 dygn per dygn (Insights) med priset som bakgrund, spotpris i dag och i morgon, tips |
+| Väder | SMHI: nu, närmaste dygnet i klartext (nederbörd, kyla, vind), sol upp/ned, 24 timmar och 6 dygn |
+| Rum | Ett kort per Homey-zon med enheter, grupperade per våning, reglage enligt regeln nedan |
 | Inst. | Elområde, val av elmätare och prisenhet, egna rum, kontroll och diagnos |
 
 ## Reglage
@@ -38,7 +38,7 @@ Varje Homey-zon med egna enheter blir ett rum automatiskt, i zonträdets ordning
 | `js/core/http.js` | fetch med tidsgräns och generiska felkategorier |
 | `js/core/controls.js` | Reglageregeln: endast klass `light` och `coffeemachine`, i rendering och skrivväg |
 | `js/core/rooms.js` | Automatiska rum per zon, egna rum sparade lokalt |
-| `js/core/energy.js`, `js/core/prices.js`, `js/core/weather.js` | Rena beräkningar: förbrukning och kostnad, spotpris och tips, SMHI-tolkning |
+| `js/core/energy.js`, `js/core/prices.js`, `js/core/weather.js`, `js/core/sun.js` | Rena beräkningar: förbrukning och kostnad, spotpris och tips, SMHI-tolkning och utsikt, sol upp/ned |
 | `js/core/svg.js` | Egna diagram och väderikoner i SVG |
 | `js/app/` | Vyerna: `main.js` (start, anslutning, navigering, inställningar), `energy.js`, `weather.js`, `roomsview.js`, `state.js`, `ui.js` |
 | `js/adapters/homey.js` | Homey Web API, moln och lokalt, realtid |
@@ -46,6 +46,9 @@ Varje Homey-zon med egna enheter blir ett rum automatiskt, i zonträdets ordning
 | `js/adapters/spotpris.js` | Spotpris per elområde (elprisetjustnu.se) |
 | `css/tokens.css`, `css/lab.css`, `css/app.css` | Designtokens, baslager, rumsvy |
 | `sw.js`, `manifest.webmanifest` | PWA-skal |
+
+## Installera och uppdatera
+Öppna sidan i Chrome på Android och välj Installera appen (Inställningar) eller Chromes meny → Lägg till på startskärmen. Uppdateringar kräver ingen ominstallation: service workern hämtar egna filer från nätet först, och när en ny version (ny `CACHE` i `sw.js`) publiceras tar den över och appen laddas om en gång. Höj `CACHE` och `APP_VERSION` vid varje release.
 
 ## Säkerhet
 - Content-Security-Policy i varje sida: bara egna skript, nätanrop endast till Homey (moln/lokalt), SMHI och elprisetjustnu.se.

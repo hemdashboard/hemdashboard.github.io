@@ -13,7 +13,7 @@ import * as energy from './energy.js';
 import * as weather from './weather.js';
 import * as roomsview from './roomsview.js';
 
-export const APP_VERSION = '0.3.0';
+export const APP_VERSION = '0.3.1';
 
 // Ramspärr: meta-CSP kan inte sätta frame-ancestors. I en ram körs sidan aldrig.
 if (window.top !== window.self) {
@@ -226,12 +226,6 @@ function renderClock() {
   $('clock').textContent = `${date} · ${time}`;
 }
 
-// Ritar inte om rumsvyn medan ett dimmerreglage används.
-function busy() {
-  const a = document.activeElement;
-  return Boolean(a && a.matches && a.matches('input.dim:active, input.dim:focus-visible'));
-}
-
 const go = (v) => () => { setView(v); };
 
 function render() {
@@ -247,7 +241,7 @@ function render() {
   } else if (v === 'weather') {
     weather.renderWeather($('weatherRoot'));
   } else if (v === 'rooms') {
-    if (!busy()) roomsview.renderRooms($('roomsRoot'));
+    roomsview.renderRooms($('roomsRoot'));
   } else if (v === 'settings') {
     renderSettings();
   }
@@ -333,7 +327,7 @@ $('setPrice').addEventListener('change', (e) => { setPref('priceId', e.target.va
 $('roomAdd').addEventListener('click', () => {
   try {
     const r = rooms.add($('roomName').value, $('roomZone').value, $('roomChildren').checked);
-    roomsview.setActiveRoom(r.id);
+    roomsview.openRoom(r.id);
     $('roomName').value = ''; $('roomChildren').checked = false;
     setView('rooms');
   } catch (e) {
@@ -424,9 +418,52 @@ purgeLegacy();
 renderClock();
 showView();
 
+// ---------- PWA: installation och uppdatering ----------
+// Uppdateringar kräver ingen ominstallation: service workern hämtar egna filer från nätet
+// först, och en ny version tar över direkt. Sidan laddas om en gång när den nya är aktiv.
+let swReg = null;
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register(swUrl).catch(() => { /* appen fungerar utan */ });
+  const hadController = Boolean(navigator.serviceWorker.controller);
+  let reloading = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!hadController || reloading) return; // första installationen: ingen omladdning
+    reloading = true;
+    toast('Ny version – laddar om…');
+    setTimeout(() => location.reload(), 600);
+  });
+  navigator.serviceWorker.register(swUrl).then((r) => { swReg = r; }).catch(() => { /* appen fungerar utan */ });
+  // Sök efter ny version när appen kommer tillbaka från bakgrunden.
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && swReg) swReg.update().catch(() => {}); });
 }
+
+let installEvt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  installEvt = e;
+  $('installBtn').classList.remove('hidden');
+});
+window.addEventListener('appinstalled', () => {
+  installEvt = null;
+  $('installBtn').classList.add('hidden');
+  $('installInfo').textContent = 'Installerad. Uppdateringar kommer automatiskt, utan ominstallation.';
+});
+if (matchMedia('(display-mode: standalone)').matches) {
+  $('installInfo').textContent = 'Körs som installerad app. Uppdateringar kommer automatiskt, utan ominstallation.';
+}
+$('installBtn').addEventListener('click', async () => {
+  if (!installEvt) return;
+  installEvt.prompt();
+  await installEvt.userChoice.catch(() => null);
+  installEvt = null;
+  $('installBtn').classList.add('hidden');
+});
+$('updateBtn').addEventListener('click', async () => {
+  if (!swReg) { toast('Ingen service worker – ladda om sidan.'); return; }
+  try {
+    await swReg.update();
+    toast(swReg.installing || swReg.waiting ? 'Ny version hittad – laddar om…' : `Senaste versionen (${APP_VERSION}).`);
+  } catch { toast('Kunde inte söka efter uppdatering.'); }
+});
 
 // Diagrammen ritas i faktisk bredd; rita om när fönstret ändrar storlek eller vänds.
 let resizeTimer = null;

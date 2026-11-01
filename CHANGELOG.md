@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.1 – 2026-11-01
+- Rumsvyn omgjord: alla rum som kort under varandra, grupperade per våning (överordnad zon), med hopplänkar som radbryts. Ingen sidledsscroll.
+- Rumsvyn byggs bara om när rum eller enheter ändras. Annars uppdateras värdena på plats, så att realtid och pollning inte flyttar sidan eller avbryter ett reglage. Dimmern visas bara när lampan är på.
+- Översiktens rumskort öppnar rumsvyn vid rätt rum.
+- Förbrukningsdiagrammet visar priset som bakgrund: Tibbers totalpris ur Insights (per timme i dag, dygnsmedel för 7/30 dygn) med egen skala till höger. Spotpris som reserv för i dag.
+- Väder: "Närmaste dygnet" i översikten och vädervyn – när regn eller snö börjar och slutar och ungefär hur mycket, minusgrader eller frostrisk, hårda vindbyar, temperaturspann. Soluppgång och solnedgång beräknas lokalt (`js/core/sun.js`), och natt-ikoner följer verklig sol.
+- Telegram-texten i vädervyn borttagen.
+- PWA: PNG-ikoner 192/512 och maskable, `id` i manifestet, knappen Installera appen och Sök efter uppdatering i Inställningar. En ny version tar över automatiskt och sidan laddas om en gång – ingen ominstallation.
+- Tips: fönster börjar på periodgräns (jämna tider).
+- Pris visas som läsvärde på prisenheten i Rum.
+- Cache `hd-shell-v0.3.1`.
+
 ## 0.3.0 – 2026-10-31
 - Hela dashboarden i en första version: Hem (översikt), El, Väder, Rum och Inställningar med nedre fält.
 - Reglage för klass `light` och `coffeemachine` (beslut 31), i rendering och skrivväg. `coffeemachine` får bara `onoff`.

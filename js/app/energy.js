@@ -116,9 +116,9 @@ export async function loadEnergy() {
     priceLog ? entries(priceLog, 'today', 'pris i dag', 'last24Hours') : Promise.resolve([]),
   ]);
 
-  // Utan kostnadslogg: förbrukning × Tibber-pris per timme (prisets Insights 31 dygn).
+  // Prisets Insights 31 dygn: bakgrund i förbrukningsdiagrammet, och kostnad när kostnadslogg saknas.
   let price31 = null;
-  if (!costLog && priceLog) price31 = await entries(priceLog, 'last31Days', 'pris 30 d');
+  if (priceLog) price31 = await entries(priceLog, 'last31Days', 'pris 30 d');
 
   state.energy = { meterId: m.id, cumCap, cumDay, powDay, cum7, pow7, cum31, pow31, cost31, priceDay, price31, at: Date.now() };
   changed('energy');
@@ -165,7 +165,7 @@ export function figures(now = Date.now()) {
     let s = 0; for (const v of dm.values()) s += v;
     out.monthKr = s + out.todayKr;
     out.monthDays = dm.size; out.monthDaysExpected = daysBefore;
-  } else if (en.price31 && en.price31.length) {
+  } else if (!(en.cost31 && en.cost31.length) && en.price31 && en.price31.length) {
     const c = E.costFromHourly(E.hourly(en.cum31, month0, now), stepPriceAt(en.price31));
     out.monthKr = c.kr; out.monthPartial = c.kwhPriced < c.kwh * 0.95;
     out.monthDays = daysBefore; out.monthDaysExpected = daysBefore;
@@ -224,7 +224,7 @@ function windowLine(label, use, w, now) {
   const saving = w.ref > 0 ? Math.round((1 - w.avg / w.ref) * 100) : null;
   return h('div.tip',
     h('div.tip-head', label),
-    h('div.tip-val', `${w.t <= now + 60000 ? 'nu' : `${dayLabel(w.t, now) === 'i dag' ? '' : `${dayLabel(w.t, now)} `}${hhmm(w.t)}`}–${hhmm(w.e)}`),
+    h('div.tip-val', `${w.t <= now ? 'nu' : `${dayLabel(w.t, now) === 'i dag' ? '' : `${dayLabel(w.t, now)} `}${hhmm(w.t)}`}–${hhmm(w.e)}`),
     h('div.tip-sub', `${use} · snitt ${num(w.avg, 2)} kr/kWh${saving !== null && saving > 0 ? ` · ${saving} % under snittet` : ''}`));
 }
 
@@ -270,9 +270,45 @@ function rangeButtons(cur, onPick) {
     ...opts.map(([k, l]) => h('button', { 'aria-pressed': cur === k ? 'true' : 'false', onclick: () => onPick(k) }, l)));
 }
 
+// Pris per hink i [from, to) ur Insights-punkter: tidsviktat medel av stegvärdena.
+function pricePerBucket(pts, from, to, step) {
+  const out = [];
+  for (let b = from; b < to; b = step(b)) {
+    const e = step(b);
+    let w = 0, sum = 0;
+    for (let i = 0; i < pts.length; i += 1) {
+      const a = pts[i].t, z = i + 1 < pts.length ? pts[i + 1].t : a + HOUR;
+      const lo = Math.max(a, b), hi = Math.min(z, e);
+      if (hi > lo) { sum += pts[i].v * (hi - lo); w += hi - lo; }
+    }
+    out.push(w > 0 ? sum / w : null);
+  }
+  return out;
+}
+
+// Bakgrundspriset: Tibbers totalpris ur Insights; för i dag spotpris som reserv.
+function priceBackground(range, now) {
+  const en = state.energy;
+  const day0 = E.startOfDay(now);
+  if (range === 'day') {
+    if (en.priceDay && en.priceDay.length) {
+      const v = pricePerBucket(en.priceDay, day0, day0 + DAY, t => t + HOUR);
+      return { bg: v.map((x, i) => (day0 + i * HOUR <= now ? x : null)), src: 'Tibber totalpris' };
+    }
+    if (state.spot && state.spot.series.length) {
+      return { bg: P.hourlyAvg(state.spot.series, day0, day0 + DAY).map(x => (x.t <= now ? x.p : null)), src: 'spotpris exkl. moms' };
+    }
+    return null;
+  }
+  if (!en.price31 || !en.price31.length) return null;
+  const n = range === '7' ? 7 : 30;
+  return { bg: pricePerBucket(en.price31, E.addDays(day0, -(n - 1)), day0 + DAY, t => E.addDays(t, 1)), src: 'Tibber totalpris, dygnsmedel' };
+}
+
 function consumptionChart(range, now) {
   const en = state.energy;
   const day0 = E.startOfDay(now);
+  const bgp = priceBackground(range, now);
   if (range === 'day') {
     const hours = E.hourly(en.cumDay, day0, day0 + DAY);
     const pw = E.powerHourly(en.powDay, day0, day0 + DAY);
@@ -281,7 +317,9 @@ function consumptionChart(range, now) {
     const total = hours.reduce((s, x) => s + x.kwh, 0);
     const top = pw.reduce((a, x) => (x.max !== null && (!a || x.max > a.max) ? x : a), null);
     return {
-      svg: barChart(bars, { width: chartWidth(), fmt: v => num(v, 1), labelEvery: 3, now: cur, line: pw.map((x, i) => (i > cur ? null : x.avg)), label: 'Förbrukning per timme i dag' }),
+      svg: barChart(bars, { width: chartWidth(), fmt: v => num(v, 1), labelEvery: 3, now: cur, line: pw.map((x, i) => (i > cur ? null : x.avg)),
+        bg: bgp ? bgp.bg : null, bgFmt: v => num(v, 1), label: 'Förbrukning per timme i dag mot pris' }),
+      bgSrc: bgp ? bgp.src : null,
       sum: `${num(total, 1)} kWh i dag${top ? ` · högsta effekt ${power(top.max)} kl ${hh(top.t)}` : ''}`,
     };
   }
@@ -300,7 +338,9 @@ function consumptionChart(range, now) {
   const full = days.slice(0, -1).filter(x => x.has);
   const avg = full.length ? full.reduce((s, x) => s + x.kwh, 0) / full.length : null;
   return {
-    svg: barChart(bars, { width: chartWidth(), fmt: v => num(v, 0), labelEvery: n === 7 ? 1 : 5, line: pw.map(x => x.max), label: `Förbrukning per dygn, ${n} dygn` }),
+    svg: barChart(bars, { width: chartWidth(), fmt: v => num(v, 0), labelEvery: n === 7 ? 1 : 5, line: pw.map(x => x.max),
+      bg: bgp ? bgp.bg : null, bgFmt: v => num(v, 1), label: `Förbrukning per dygn, ${n} dygn, mot pris` }),
+    bgSrc: bgp ? bgp.src : null,
     sum: `${num(days.reduce((s, x) => s + x.kwh, 0), 0)} kWh totalt${avg !== null ? ` · snitt ${num(avg, 1)} kWh per hela dygn` : ''}`,
   };
 }
@@ -365,7 +405,9 @@ export function renderEnergy(root, now = Date.now()) {
     else if (en.err || en.meterId !== f.meter.id) box.append(note('Hämtar Insights…'));
     else {
       const c = consumptionChart(p.energyRange, now);
-      box.append(c.svg, h('div.legend', h('span.key.bar', 'kWh'), h('span.key.line', p.energyRange === 'day' ? 'medeleffekt' : 'högsta effekt')), h('p.fine', c.sum));
+      box.append(c.svg, h('div.legend', h('span.key.bar', 'kWh (vänster)'),
+        c.bgSrc ? h('span.key.bg', `kr/kWh (höger): ${c.bgSrc}`) : null,
+        h('span.key.line', p.energyRange === 'day' ? 'medeleffekt' : 'högsta effekt')), h('p.fine', c.sum));
     }
     kids.push(box);
   }

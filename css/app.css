@@ -78,6 +78,9 @@ svg.chart .grid { stroke: var(--chart-grid); stroke-width: 1; }
 svg.chart .zero { stroke: var(--text-3); stroke-width: 1; }
 svg.chart .axis { fill: var(--text-3); font-family: var(--font-mono); font-size: 11px; }
 svg.chart .nowband { fill: var(--chart-band); }
+svg.chart .bgarea { fill: var(--warn); fill-opacity: .12; }
+svg.chart .bgline { fill: none; stroke: var(--warn); stroke-width: 2; stroke-linejoin: round; }
+svg.chart .bg-axis { fill: var(--warn); }
 svg.chart .bar { fill: var(--chart-bar); }
 svg.chart .bar.cur { fill: var(--chart-cur); }
 svg.chart .bar.past { opacity: .5; }
@@ -91,6 +94,7 @@ svg.chart .line.temp { stroke: var(--text-1); }
 .key::before { content: ""; display: inline-block; width: 10px; height: 10px; margin-right: 6px; vertical-align: -1px; border-radius: 2px; background: var(--chart-bar); }
 .key.cheap::before { background: var(--accent); }
 .key.peak::before { background: var(--warn); }
+.key.bg::before { height: 2px; vertical-align: 3px; background: var(--warn); }
 .key.line::before { height: 2px; vertical-align: 3px; background: var(--info); }
 
 /* Väder */
@@ -130,44 +134,46 @@ button.room[data-lit="1"] { border-color: var(--accent); }
 .room-meta { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--text-3); }
 button.room[data-lit="1"] .room-meta { color: var(--accent); }
 
-/* Rumsflikar */
-nav.rooms { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
-nav.rooms::-webkit-scrollbar { display: none; }
+/* Rumsvyn: hopplänkar som radbryts (ingen sidledsscroll), rum som kort under varandra */
+nav.jump { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 4px; }
 .chip {
-  flex: 0 0 auto;
-  border-radius: 999px;
-  background: var(--surface-1);
-  border-color: var(--surface-1-edge);
-  color: var(--text-2);
+  border-radius: 999px; min-height: 36px; padding: 0 12px;
+  background: var(--surface-1); border-color: var(--surface-1-edge);
+  color: var(--text-2); font-size: var(--fs-xs);
 }
-.chip[aria-pressed="true"] { background: var(--accent-dim); border-color: var(--accent); color: var(--text-1); }
+.chip:hover, .chip:focus-visible { color: var(--text-1); border-color: var(--accent); }
 
-h2.sect { margin: 16px 0 8px; }
+h2.group { margin: 18px 0 8px; }
+.roomcards { display: grid; gap: var(--gap); grid-template-columns: 1fr; margin-top: var(--gap); }
+h2.group + .roomcards { margin-top: 0; }
+@media (min-width: 760px) { .roomcards { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; } }
+@media (min-width: 1080px) { .roomcards { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.roomcard { padding: 14px 16px; scroll-margin-top: 64px; min-width: 0; }
+.rc-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 6px; }
+.rc-head h3 { margin: 0; font-size: var(--fs-md); font-weight: 600; color: var(--text-1); }
+.rc-meta { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--text-3); white-space: nowrap; }
 
-/* Rutor */
-ul.tiles { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--gap);
-           grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
-.tile {
-  display: grid; gap: 10px; align-content: start;
-  min-height: 96px;
-  padding: 14px;
-  background: var(--surface-1);
-  border: 1px solid var(--surface-1-edge);
-  border-radius: var(--r-lg);
-  transition: border-color var(--dur) var(--ease);
-}
-.tile[data-on="1"] { border-color: var(--accent); }
-.tile.off { opacity: .55; }
-.tile-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
-.tile .name { font-size: var(--fs-sm); color: var(--text-1); line-height: 1.3; word-break: break-word; }
-.tile .state { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--text-3); margin-top: 4px;
-               font-variant-numeric: tabular-nums; }
-.tile[data-on="1"] .state { color: var(--accent); }
-ul.tiles.ro .tile { min-height: 72px; background: var(--surface-2); border-color: var(--surface-2-edge); }
+/* Styrbara enheter: rad med namn, läge och strömbrytare; dimmer under när den är på */
+ul.devs { list-style: none; margin: 0; padding: 0; }
+li.dev { padding: 6px 0; border-top: 1px solid var(--surface-1-edge); }
+li.dev:first-child { border-top: 0; }
+.dev-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; min-height: var(--touch); }
+.dev-text { display: grid; min-width: 0; }
+.dev-name { font-size: var(--fs-sm); color: var(--text-1); line-height: 1.3; overflow-wrap: anywhere; }
+.dev-state { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--text-3); font-variant-numeric: tabular-nums; }
+li.dev[data-on="1"] .dev-state { color: var(--accent); }
+li.dev.off { opacity: .55; }
+
+/* Läsande enheter: kompakt lista, namn till vänster och värde till höger */
+ul.ros { list-style: none; margin: 8px 0 0; padding: 8px 0 0; border-top: 1px dashed var(--surface-1-edge); display: grid; gap: 2px; }
+li.ro { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; min-height: 28px; font-size: var(--fs-xs); }
+.ro-name { color: var(--text-2); overflow-wrap: anywhere; }
+.ro-val { font-family: var(--font-mono); color: var(--text-1); text-align: right; font-variant-numeric: tabular-nums; }
+li.ro.off .ro-val { color: var(--text-3); }
 
 /* Strömbrytare: 52×32 synligt, 44 px träffyta */
 button.switch {
-  flex: 0 0 auto;
+  flex: 0 0 auto; touch-action: manipulation;
   position: relative;
   width: 52px; min-height: 32px; height: 32px; padding: 0;
   margin: 6px 0;
@@ -187,7 +193,7 @@ button.switch[aria-checked="true"]::after { transform: translateX(20px); backgro
 
 /* Dimmer */
 input.dim {
-  width: 100%; min-height: var(--touch); padding: 0; margin: 0;
+  width: 100%; min-height: var(--touch); padding: 0; margin: 0; touch-action: pan-y;
   background: transparent; border: 0;
   accent-color: var(--accent);
 }
@@ -226,3 +232,13 @@ nav.bar button[aria-pressed="true"] { color: var(--accent); }
 @media (orientation: landscape) and (max-height: 500px) {
   header.top { position: static; }
 }
+
+/* Väderutsikt: kort lista över det man behöver veta närmaste dygnet */
+p.sect-label { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--text-3); text-transform: uppercase;
+               letter-spacing: .06em; margin: 14px 0 6px; }
+ul.outlook { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+ul.outlook li { font-size: var(--fs-sm); color: var(--text-1); padding-left: 12px; border-left: 2px solid var(--surface-2-edge); line-height: 1.35; }
+ul.outlook li[data-kind="rain"], ul.outlook li[data-kind="sleet"], ul.outlook li[data-kind="snow"] { border-left-color: var(--cold); }
+ul.outlook li[data-kind="dry"] { border-left-color: var(--text-3); color: var(--text-2); }
+ul.outlook li[data-warn="1"] { border-left-color: var(--warn); }
+ul.outlook li[data-kind="temp"] { color: var(--text-2); }

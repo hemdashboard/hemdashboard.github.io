@@ -118,3 +118,63 @@ function mode(arr) {
   for (const [s, k] of c) if (k > n || (k === n && s > best)) { best = s; n = k; }
   return best;
 }
+
+// Utsikt de närmaste `hours` timmarna: det man vill veta innan man går ut.
+// Returnerar en lista { kind, warn, text } i ordning nederbörd, kyla, vind, temperatur.
+// Gränser (A, justerbara): nederbörd ≥ 0,1 mm/h, frost ≤ 0 °C (risk ≤ 2 °C nattetid),
+// hårda byar ≥ 14 m/s eller medelvind ≥ 10 m/s.
+export function outlook(pts, now = Date.now(), hours = 24) {
+  const end = now + hours * 3600000;
+  const win = pts.filter(p => p.t + 3600000 > now && p.t < end);
+  if (!win.length) return [];
+  const hhmm = (ms) => `${String(new Date(ms).getHours()).padStart(2, '0')}`;
+  const wet = (p) => p.rain !== null && p.rain >= 0.1;
+  const kindOf = (p) => symbol(p.sym).kind;
+  const out = [];
+
+  // Nederbörd: pågår nu, eller när börjar den, hur länge och hur mycket.
+  const first = win.findIndex(wet);
+  if (first === -1) out.push({ kind: 'dry', warn: false, text: `Uppehåll närmaste ${hours} h` });
+  else {
+    let last = first, mm = 0;
+    for (let i = first; i < win.length && wet(win[i]); i += 1) {
+      const next = win[i + 1] || pts[pts.indexOf(win[i]) + 1];
+      const stepH = next ? Math.min(6, (next.t - win[i].t) / 3600000) : 1;
+      mm += win[i].rain * stepH; last = i;
+    }
+    const after = win[last + 1];
+    // Typ ur symbolerna i perioden: snö eller snöblandat om någon timme har det, annars regn.
+    const kinds = win.slice(first, last + 1).map(kindOf);
+    const k = kinds.includes('snow') ? 'snow' : kinds.includes('sleet') ? 'sleet' : 'rain';
+    const what = k === 'snow' ? 'Snö' : k === 'sleet' ? 'Snöblandat' : 'Regn';
+    const amount = mm >= 0.5 ? `, ca ${mm < 10 ? Math.round(mm * 10) / 10 : Math.round(mm)} mm`.replace('.', ',') : '';
+    const text = win[first].t <= now
+      ? `${what} nu${after ? `, uppehåll från ${hhmm(after.t)}` : ' resten av dygnet'}${amount}`
+      : `${what} från ${hhmm(win[first].t)}${after ? ` till ${hhmm(after.t)}` : ''}${amount}`;
+    out.push({ kind: k, warn: mm >= 5 || k !== 'rain', text });
+  }
+
+  // Kyla: lägsta temperatur och när.
+  const temps = win.filter(p => p.temp !== null);
+  if (temps.length) {
+    const min = temps.reduce((a, p) => (p.temp < a.temp ? p : a));
+    const max = temps.reduce((a, p) => (p.temp > a.temp ? p : a));
+    if (min.temp <= -0.5) out.push({ kind: 'frost', warn: true, text: `Minusgrader, lägst ${fmt(min.temp)}° kl ${hhmm(min.t)}` });
+    else if (min.temp <= 0) out.push({ kind: 'frost', warn: true, text: `Nollgradigt kl ${hhmm(min.t)}, risk för halka` });
+    else if (min.temp <= 2 && isNight(min.t)) out.push({ kind: 'frost', warn: false, text: `Risk för frost, lägst ${fmt(min.temp)}° kl ${hhmm(min.t)}` });
+    out.push({ kind: 'temp', warn: false, text: `${fmt(min.temp)}° till ${fmt(max.temp)}°, varmast kl ${hhmm(max.t)}` });
+  }
+
+  // Vind: hårdaste byn eller medelvinden.
+  const gusts = win.filter(p => p.gust !== null);
+  const g = gusts.length ? gusts.reduce((a, p) => (p.gust > a.gust ? p : a)) : null;
+  const winds = win.filter(p => p.wind !== null);
+  const w = winds.length ? winds.reduce((a, p) => (p.wind > a.wind ? p : a)) : null;
+  if (g && g.gust >= 14) out.push({ kind: 'wind', warn: true, text: `Hårda vindbyar, upp till ${Math.round(g.gust)} m/s kl ${hhmm(g.t)}` });
+  else if (w && w.wind >= 10) out.push({ kind: 'wind', warn: true, text: `Blåsigt, ${Math.round(w.wind)} m/s kl ${hhmm(w.t)}` });
+
+  // Ordning: varningar först, temperatur sist.
+  return [...out.filter(o => o.warn), ...out.filter(o => !o.warn && o.kind !== 'temp'), ...out.filter(o => o.kind === 'temp')];
+}
+
+function fmt(v) { return String(Math.round(v)).replace('-', '−'); }

@@ -10,6 +10,7 @@
 <title>Hemdashboard</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
 <link rel="stylesheet" href="css/tokens.css">
 <link rel="stylesheet" href="css/lab.css">
 <link rel="stylesheet" href="css/app.css">
@@ -119,6 +120,15 @@
           <a class="btnlink ghost" href="lab.html">Testsida</a>
         </div>
         <p class="fine" id="version">–</p>
+      </section>
+
+      <section class="card">
+        <h2>App</h2>
+        <p id="installInfo">Installera som app via Chromes meny → Lägg till på startskärmen. Uppdateringar kommer automatiskt, utan ominstallation.</p>
+        <div class="row">
+          <button class="primary hidden" id="installBtn">Installera appen</button>
+          <button id="updateBtn">Sök efter uppdatering</button>
+        </div>
       </section>
     </div>
   </section>
