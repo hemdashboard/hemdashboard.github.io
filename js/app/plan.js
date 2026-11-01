@@ -102,12 +102,14 @@ function rerender() { built.sig = ''; if (rootEl) renderPlan(rootEl); }
 function floorSvg(f, list, map) {
   const [vx, vy, vw, vh] = f.view;
   const svg = el('svg', { viewBox: `${vx} ${vy} ${vw} ${vh}`, class: 'fp', role: 'group', 'aria-label': f.label });
-  const [wx, wy, ww, wh] = f.walls;
-  svg.append(el('rect', { x: wx, y: wy, width: ww, height: wh, class: 'fp-wall' }));
+  if (f.walls) {
+    const [wx, wy, ww, wh] = f.walls;
+    svg.append(el('rect', { x: wx, y: wy, width: ww, height: wh, class: 'fp-wall' }));
+  }
   for (const a of f.areas) {
     const roomId = a.kind === 'room' ? map[a.id] : null;
     const room = roomId ? list.find(r => r.id === roomId) : null;
-    const g = el('g', { class: `fp-area ${a.kind}`, 'data-area': a.id, 'data-linked': room ? '1' : '0',
+    const g = el('g', { class: `fp-area ${a.kind}${a.out ? ' outside' : ''}`, 'data-area': a.id, 'data-linked': room ? '1' : '0',
       'data-sel': edit && pickArea === a.id ? '1' : '0' });
     g.append(el('polygon', { points: points(a.pts), class: 'fp-poly' }));
     if (a.label) {

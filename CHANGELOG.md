@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.1 – 2026-11-01
+- Planritning: trappan går att koppla på båda planen (t.ex. till trapphuset) och altanen till uteplatsens zon.
+- Ny ritning Utomhus med Framsidan och Förråd (fristående, schematiskt). Förrådet under trappan ritas men kopplas inte, så att Förråd kopplas automatiskt till rätt zon.
+- Cache `hd-shell-v0.6.1`.
+
 ## 0.6.0 – 2026-11-01
 - Planritningen är inbyggd: schematisk ritning av entréplan och övre plan med rumstyper (beslut 33). Ingen uppladdning längre.
 - Koppla rum: tryck på en yta och välj appens rum. Entydiga namn kopplas automatiskt. Kopplingen sparas lokalt.

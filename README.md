@@ -5,7 +5,7 @@ Egen PWA som visar husets status och låter hushållet slå av och på enheter v
 **Repot innehåller ingen husdata** utöver den schematiska planritningen (geometri och rumstyper, beslut 33). Enheter, zoner och användare hämtas från Homey vid körning. Nycklar, Homey-ID, IP-adresser och positioner anges i webbläsaren och sparas krypterade lokalt – aldrig här.
 
 ## Status
-Version 0.6.0: hela dashboarden – översikt med närvaro och energiflöde vid laddning, el, smarta tips, väder, rum med planritning och rörelse, installerbar som app. Testsidan `lab.html` finns kvar för diagnos.
+Version 0.6.1: hela dashboarden – översikt med närvaro och energiflöde vid laddning, el, smarta tips, väder, rum med planritning och rörelse, installerbar som app. Testsidan `lab.html` finns kvar för diagnos.
 
 ## Vyer
 | Vy | Innehåll |
@@ -13,7 +13,7 @@ Version 0.6.0: hela dashboarden – översikt med närvaro och energiflöde vid 
 | Hem | Översikt: nyckeltal med trendbricka (effekt nu, i dag, månaden, pris nu), energiflöde nät → hus → laddbox när en laddbox laddar, närvaro per person (hemma/borta), snabbreglage för stjärnmärkta reglage (standard: kaffebryggare), smarta tips, väder med närmaste dygnet och insikter (varmvatten, förbrukning mot vanligt, effekttopp, snittpris) |
 | El | Nyckeltal, förbrukning i dag per timme och 7/30 dygn per dygn (Insights) med priset som bakgrund, spotpris i dag och i morgon, tips |
 | Väder | SMHI: nu, närmaste dygnet i klartext (nederbörd, kyla, vind), sol upp/ned, 24 timmar och 6 dygn |
-| Rum | Planritning överst (schematisk, båda planen: tänt, rörelse, öppet). Ett kort per Homey-zon med enheter, grupperade per våning. Knapparna överst väljer vilka rum som visas. Tillverkare inom parentes. Reglage enligt regeln nedan |
+| Rum | Planritning överst (schematisk, båda planen och utomhus: tänt, rörelse, öppet). Ett kort per Homey-zon med enheter, grupperade per våning. Knapparna överst väljer vilka rum som visas. Tillverkare inom parentes. Reglage enligt regeln nedan |
 | Inst. | Elområde, val av elmätare och prisenhet, egna rum, kontroll och diagnos |
 
 ## Reglage
@@ -28,7 +28,7 @@ Varje Homey-zon med egna enheter blir ett rum automatiskt, i zonträdets ordning
 - **Energiflöde:** när en laddbox (`evcharger`) laddar visas nät → hus → laddbox. Nät = vald elmätare, laddbox = laddboxens `measure_power`, huset = skillnaden. Endast visning.
 
 ## Planritning
-Schematisk planritning i `js/core/floorplan.js`: väggar och rum som polygoner med rumstyp som etikett (Sovrum, Kök, Hall …), två plan (beslut 33). Inga personnamn, Homey-ID, adress eller enheter. Kopplingen ritat rum → appens rum (Homey-zon eller eget rum) görs med Koppla rum och sparas lokalt per webbläsare; en etikett som förekommer en gång och heter exakt som ett rum kopplas automatiskt. Ytorna visar tänt (fylld), rörelse senaste minuten (blå kant) och öppet (gul kant). Tryck öppnar rummet.
+Schematisk planritning i `js/core/floorplan.js`: väggar och rum som polygoner med rumstyp som etikett (Sovrum, Kök, Hall …), entréplan, övre plan och utomhus (beslut 33). Inga personnamn, Homey-ID, adress eller enheter. Kopplingen ritat rum → appens rum (Homey-zon eller eget rum) görs med Koppla rum och sparas lokalt per webbläsare; en etikett som förekommer en gång och heter exakt som ett rum kopplas automatiskt. Ytorna visar tänt (fylld), rörelse senaste minuten (blå kant) och öppet (gul kant). Tryck öppnar rummet.
 
 ## El och tips
 - **Elmätare:** enheten med `measure_power` och en energimätare väljs automatiskt (en mätare med `accumulatedCost` och `meter_power.imported` först) eller i Inställningar. Valet sparas lokalt.

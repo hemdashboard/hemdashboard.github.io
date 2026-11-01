@@ -463,13 +463,14 @@ figure.fp-floor figcaption { font-size: var(--fs-sm); color: var(--text-2); marg
 svg.fp { display: block; width: 100%; height: auto; max-height: 72vh; }
 .fp-wall { fill: var(--surface-2-edge); }
 .fp-poly { fill: var(--surface-1); stroke: none; transition: fill var(--dur) var(--ease); }
-.fp-area.out .fp-poly { fill: var(--surface-2); }
+.fp-area.outside .fp-poly { fill: var(--surface-2); }
+svg.fp .fp-area.outside .fp-poly { stroke: var(--surface-2-edge); stroke-width: 2; }
 .fp-area.aux .fp-poly { fill: var(--bg); }
 .fp-area.room { cursor: pointer; outline: none; }
 .fp-area.room:hover .fp-poly, .fp-area.room:focus-visible .fp-poly { fill: var(--surface-hover); }
 .fp-area.room[data-linked="0"] .fp-label { fill: var(--text-3); }
 .fp-label { fill: var(--text-1); font-family: var(--font-sans); font-size: 30px; font-weight: 500; pointer-events: none; }
-.fp-area.out .fp-label, .fp-area.aux .fp-label { fill: var(--text-3); font-weight: 400; font-size: 26px; }
+.fp-area.aux .fp-label { fill: var(--text-3); font-weight: 400; font-size: 26px; }
 .fp-sub { fill: var(--text-3); font-family: var(--font-sans); font-size: 22px; pointer-events: none; }
 .fp-state { fill: var(--accent); font-family: var(--font-sans); font-size: 22px; pointer-events: none; }
 .fp-fix { fill: none; stroke: var(--surface-2-edge); stroke-width: 2; pointer-events: none; }
