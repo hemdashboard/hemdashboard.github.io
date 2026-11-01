@@ -2,10 +2,10 @@
 
 Egen PWA som visar husets status och låter hushållet slå av och på enheter via Homey. Statisk sida på GitHub Pages, vanilla JS utan byggsteg.
 
-**Repot innehåller ingen husdata** utöver den schematiska planritningen (geometri och rumstyper, beslut 33). Enheter, zoner och användare hämtas från Homey vid körning. Nycklar, Homey-ID, IP-adresser och positioner anges i webbläsaren och sparas krypterade lokalt – aldrig här.
+**Repot innehåller ingen husdata** utöver den schematiska planritningen (geometri och rumstyper, beslut 33). Enheter, zoner och användare hämtas från Homey vid körning. Nycklar, Homey-ID och IP-adresser anges i webbläsaren och sparas krypterade lokalt – aldrig här. Positionen hämtas från Homey vid körning.
 
 ## Status
-Version 0.6.1: hela dashboarden – översikt med närvaro och energiflöde vid laddning, el, smarta tips, väder, rum med planritning och rörelse, installerbar som app. Testsidan `lab.html` finns kvar för diagnos.
+Version 0.6.2: hela dashboarden – översikt med närvaro och energiflöde vid laddning, el, smarta tips, väder, rum med planritning och rörelse, installerbar som app. Testsidan `lab.html` finns kvar för diagnos.
 
 ## Vyer
 | Vy | Innehåll |
@@ -44,7 +44,7 @@ Schematisk planritning i `js/core/floorplan.js`: väggar och rum som polygoner m
 |---|---|
 | `index.html` | Appen |
 | `lab.html`, `js/lab/` | Testsida och diagnossida |
-| `js/core/keystore.js` | Nyckel + anslutningsuppgifter, PIN-krypterade (PBKDF2 → AES-GCM) |
+| `js/core/keystore.js` | Nyckel + anslutningsuppgifter, krypterade med AES-GCM och en icke-exporterbar nyckel (IndexedDB), ingen PIN |
 | `js/core/http.js` | fetch med tidsgräns och generiska felkategorier |
 | `js/core/controls.js` | Reglageregeln: endast klass `light` och `coffeemachine`, i rendering och skrivväg |
 | `js/core/rooms.js` | Automatiska rum per zon, egna rum sparade lokalt |
@@ -70,7 +70,7 @@ Schematisk planritning i `js/core/floorplan.js`: väggar och rum som polygoner m
 - Egen origin (`hemdashboard.github.io`). Inga andra repon i organisationen får ha GitHub Pages, eftersom de skulle dela origin.
 - Inga tredjepartsskript, bibliotek eller CDN. Diagrammen är egen SVG.
 - API-nyckeln är personlig per användare och återkallas genom att den raderas i Homey.
-- PIN-krypteringen skyddar mot en lånad eller upplåst telefon, inte mot någon med full åtkomst till enheten.
+- Ingen PIN (beslut 35): uppgifterna krypteras med en icke-exporterbar nyckel, så en kopia av localStorage räcker inte för att läsa API-nyckeln. Det skyddar inte mot kod på samma origin eller mot den som har den upplåsta telefonen; där gäller telefonens skärmlås, egen origin, strikt CSP, tvåfaktor på GitHub och att nyckeln raderas i Homey.
 
 ## Källor för data
 - Väder: SMHI, öppna data.

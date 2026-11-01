@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.6.2 – 2026-11-01
+- Ingen PIN (beslut 35). Anslutningsuppgifterna krypteras med AES-GCM och en icke-exporterbar nyckel i webbläsaren (WebCrypto i IndexedDB) och öppnas automatiskt. Nyckeln ligger aldrig i klartext i lagringen. Telefonens skärmlås är spärren mot den som håller i telefonen.
+- Uppdatering från PIN-versionen: PIN anges en sista gång, sedan flyttas nyckeln till den nya lagringen.
+- Lås-knappen borttagen. Glöm nyckeln raderar både uppgifterna och den lokala krypteringsnyckeln.
+- Testsidan: versionsrubriken hämtas ur koden, reglagetexten följer regeln, dubblerad ramspärr borttagen, formuläret dolt tills sidan startat.
+- Städning: oanvända exporter borttagna.
+- Cache `hd-shell-v0.6.2`.
+
 ## 0.6.1 – 2026-11-01
 - Planritning: trappan går att koppla på båda planen (t.ex. till trapphuset) och altanen till uteplatsens zon.
 - Ny ritning Utomhus med Framsidan och Förråd (fristående, schematiskt). Förrådet under trappan ritas men kopplas inte, så att Förråd kopplas automatiskt till rätt zon.
@@ -26,7 +34,7 @@
 - Cache `hd-shell-v0.5.0`.
 
 ## 0.4.0 – 2026-11-01
-- Ny stil efter Marcus valda mockup: neutral grafit utan blå ton, tunna ramar, små radier (6–12 px), rubriker och etiketter i vanlig sans i stället för versal mono, tabellsiffror.
+- Ny stil efter vald mockup: neutral grafit utan blå ton, tunna ramar, små radier (6–12 px), rubriker och etiketter i vanlig sans i stället för versal mono, tabellsiffror.
 - Nyckeltalsrad överst på Hem och El: effekt nu, i dag, månaden och pris nu, med trendbricka (effekt och pris mot snittet i dag, förbrukning mot samma klockslag de senaste dygnen). 2×2 på mobil, en rad på dator.
 - Meny med ikoner: nederkant på mobil, sidomeny till vänster på dator (från 1080 px).
 - (i) ligger som ikonknapp i kortets övre högra hörn och öppnar förklaringen som en panel.

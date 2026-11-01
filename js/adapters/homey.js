@@ -79,7 +79,7 @@ export function createHomey({ key, cloudId, lanIp }) {
     },
 
     // Enda skrivvägen. Spärren (controls.js) prövas här, före varje anrop:
-    // bara class 'light', tillgänglig, capability onoff/dim, giltigt värde.
+    // regeln i controls.js (light, coffeemachine, uttag markerat som kaffebryggare), tillgänglig, giltigt värde.
     // Nekat anrop skickas aldrig och returneras som fel 'control-denied'/'control-value'.
     control(device, capability, value, mode) {
       let v;

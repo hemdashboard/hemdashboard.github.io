@@ -6,7 +6,7 @@
 // eller enheter tillkommer/försvinner; annars uppdateras värdena på plats, så att
 // realtidshändelser inte flyttar sidan eller avbryter ett reglage som används.
 
-import { state, prefs, setPref, deviceList } from './state.js';
+import { state, deviceList } from './state.js';
 import { h, num, toast, capVal } from './ui.js';
 import * as rooms from '../core/rooms.js';
 import { hasControls, canWrite, isControlClass, controlClass, whyNoControl } from '../core/controls.js';
@@ -40,7 +40,6 @@ function selected() {
 function saveSelected(set) {
   try { localStorage.setItem(SEL_KEY, JSON.stringify([...set])); } catch { /* lagring otillgänglig */ }
 }
-export function setActiveRoom(id) { setPref('room', id); }
 
 // Öppnar rumsvyn med bara det rummet valt.
 export function openRoom(id) { saveSelected(new Set([id])); scrollTarget = null; }

@@ -16,7 +16,7 @@ import * as insights from './insights.js';
 import * as home from './home.js';
 import * as plan from './plan.js';
 
-export const APP_VERSION = '0.6.1';
+export const APP_VERSION = '0.6.2';
 
 // Ramspärr: meta-CSP kan inte sätta frame-ancestors. I en ram körs sidan aldrig.
 if (window.top !== window.self) {
@@ -270,10 +270,10 @@ function setView(v) {
 }
 
 function showView() {
-  const stored = keystore.hasStored();
   const open = keystore.isUnlocked();
-  $('setup').classList.toggle('hidden', stored);
-  $('unlock').classList.toggle('hidden', !(stored && !open));
+  const migrate = keystore.needsMigration();
+  $('setup').classList.toggle('hidden', open || migrate || keystore.hasStored());
+  $('unlock').classList.toggle('hidden', open || !migrate);
   $('bar').classList.toggle('hidden', !open);
   for (const v of Object.keys(TITLES)) $(`v-${v}`).classList.toggle('hidden', !open || state.view !== v);
   for (const b of document.querySelectorAll('#bar button')) b.setAttribute('aria-pressed', b.dataset.go === state.view ? 'true' : 'false');
@@ -347,10 +347,11 @@ $('roomAdd').addEventListener('click', () => {
   }
 });
 
-// ---------- Nyckel och lås ----------
+// ---------- Nyckel ----------
+// Ingen PIN (beslut 35): uppgifterna krypteras med en icke-exporterbar nyckel i webbläsaren
+// och öppnas automatiskt. Telefonens skärmlås är spärren mot den som håller i telefonen.
 
 const ERR = {
-  'pin-short': `PIN måste vara minst ${keystore.MIN_PIN} tecken.`,
   'key-missing': 'Ange API-nyckeln.',
   'storage-unavailable': 'Webbläsaren tillåter inte lagring (privat läge?).',
   'wrong-pin': 'Fel PIN.',
@@ -359,25 +360,25 @@ const ERR = {
 };
 
 $('saveBtn').addEventListener('click', async () => {
-  const pin = $('pin').value, pin2 = $('pin2').value;
-  if (pin !== pin2) return toast('PIN-koderna skiljer sig.');
   if (!$('cloudId').value.trim() && !$('lanIp').value.trim()) return toast('Ange Homey-ID, lokal IP eller båda.');
   try {
     $('saveBtn').disabled = true;
-    await keystore.save({ key: $('apiKey').value, cloudId: $('cloudId').value, lanIp: $('lanIp').value }, pin);
-    for (const id of ['apiKey', 'pin', 'pin2']) $(id).value = '';
+    await keystore.save({ key: $('apiKey').value, cloudId: $('cloudId').value, lanIp: $('lanIp').value });
+    $('apiKey').value = '';
     onUnlocked();
   } catch (e) { toast(ERR[e.message] || 'Kunde inte spara.'); }
   finally { $('saveBtn').disabled = false; }
 });
 
+// Engångsflytt från PIN-lagringen (≤ 0.6.1).
 $('unlockBtn').addEventListener('click', async () => {
   try {
     $('unlockBtn').disabled = true;
-    await keystore.unlock($('unlockPin').value);
+    await keystore.migrate($('unlockPin').value);
     $('unlockPin').value = '';
+    toast('Klart. PIN behövs inte längre.');
     onUnlocked();
-  } catch (e) { toast(ERR[e.message] || 'Kunde inte låsa upp.'); showView(); }
+  } catch (e) { toast(ERR[e.message] || 'Kunde inte flytta nyckeln.'); showView(); }
   finally { $('unlockBtn').disabled = false; }
 });
 $('unlockPin').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('unlockBtn').click(); });
@@ -397,18 +398,13 @@ function teardown() {
 }
 
 for (const id of ['forgetBtn', 'forgetBtn2']) {
-  $(id).addEventListener('click', () => {
+  $(id).addEventListener('click', async () => {
     if (!confirm('Radera sparad nyckel från den här webbläsaren?')) return;
-    keystore.forget();
+    await keystore.forget();
     teardown(); state.view = 'home'; showView();
     toast('Raderad. Ta bort nyckeln i Homey om den inte ska användas mer.');
   });
 }
-
-$('lockBtn').addEventListener('click', () => {
-  keystore.lock();
-  teardown(); state.view = 'home'; showView();
-});
 
 for (const b of document.querySelectorAll('[data-go]')) b.addEventListener('click', () => setView(b.dataset.go));
 $('retryBtn').addEventListener('click', () => connect());
@@ -431,6 +427,14 @@ purgeLegacy();
 plan.purgeOld();
 renderClock();
 showView();
+if (keystore.hasStored()) {
+  // Bara ett fel i open() raderar; fel senare i anslutningen hanteras av connect().
+  keystore.open().then(() => { onUnlocked(); }, async () => {
+    await keystore.forget();
+    showView();
+    toast('Sparade uppgifter kunde inte läsas – ange nyckeln igen.');
+  });
+}
 
 // ---------- PWA: installation och uppdatering ----------
 // Uppdateringar kräver ingen ominstallation: service workern hämtar egna filer från nätet

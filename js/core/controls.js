@@ -2,7 +2,7 @@
 //
 // Regel: reglage endast för enheter vars `class` är exakt 'light' eller 'coffeemachine'.
 //   - `virtualClass` räknas inte (ett uttag med lampa som virtuell klass får inget reglage).
-//   - Undantag (beslut 32, förslag): ett uttag (`class` 'socket') som i Homey markerats som
+//   - Undantag (beslut 32): ett uttag (`class` 'socket') som i Homey markerats som
 //     kaffebryggare (`virtualClass` 'coffeemachine') räknas som coffeemachine, endast 'onoff'.
 //     En kaffebryggare bakom en smart plugg; markeringen görs av ägaren i Homey-appen.
 //   - Saknad, okänd eller annan klass = inget reglage. Uttag (socket) är alltid läsande.
@@ -21,7 +21,6 @@ export const CONTROL_RULES = Object.freeze({
   light: Object.freeze(['onoff', 'dim']),
   coffeemachine: Object.freeze(['onoff']),
 });
-export const CONTROL_CLASSES = Object.freeze(Object.keys(CONTROL_RULES));
 
 // Äldre version (≤ 0.1.5) sparade en egen K-lista här. Den används inte längre.
 const LEGACY_K_KEY = 'hd.k.local.v1';
@@ -50,10 +49,6 @@ function rule(device) {
 // Enheten tillhör en klass som kan få reglage (oavsett tillgänglighet).
 export function isControlClass(device) {
   return rule(device) !== null;
-}
-
-export function isLight(device) {
-  return Boolean(device) && typeof device === 'object' && device.class === 'light';
 }
 
 // Antagande (A): Web API anger `available` per enhet. Bara uttryckligt false räknas

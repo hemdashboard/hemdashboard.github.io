@@ -1,20 +1,29 @@
 // keystore.js – lagrar anslutningsuppgifter (API-nyckel, Homey-ID, lokal adress)
-// krypterade i webbläsaren med en PIN.
+// krypterade i webbläsaren, utan PIN (beslut 35, ersätter PIN-delen av beslut 25).
 //
-// Krypto: PBKDF2-SHA256 (600 000 iterationer) → AES-GCM 256. Allt via WebCrypto.
-// Klartexten finns bara i minnet under sessionen och skrivs aldrig till lagring,
-// konsol eller nätverk utöver Homey-anropen.
+// Krypto: AES-GCM 256 med en icke-exporterbar nyckel (WebCrypto, extractable: false).
+// Nyckeln sparas i IndexedDB, chiffertexten i localStorage. Skript kan använda nyckeln
+// men aldrig läsa ut den, så en dump eller kopia av localStorage räcker inte för att
+// läsa API-nyckeln, och den ligger aldrig i klartext i lagringen.
 //
-// Begränsning (medveten): en kort PIN går att knäcka offline av den som kommer
-// åt webbläsarens lagring. Skyddet gäller en upplåst/lånad telefon och nyfikna
-// blickar, inte en angripare med full åtkomst till enheten. Återkallning sker
-// genom att nyckeln raderas i Homey.
+// Skyddar inte mot kod som körs på samma origin (den kan dekryptera medan sidan körs)
+// och inte mot den som har den upplåsta telefonen. Där är spärrarna telefonens
+// skärmlås, egen origin, strikt CSP, tvåfaktor på GitHub och att nyckeln raderas i Homey.
+//
+// Migrering: lagring från ≤ 0.6.1 (v1, PIN + PBKDF2) låses upp en sista gång med PIN
+// och skrivs om till v2. Tas bort när alla enheter har migrerats.
 
-const STORE_KEY = 'hd.keystore.v1';
-const FAIL_KEY = 'hd.keystore.fails';
-const ITERATIONS = 600_000;
-const MAX_FAILS = 10;
-export const MIN_PIN = 6;
+const STORE_KEY = 'hd.keystore.v2';
+const AAD = new TextEncoder().encode(STORE_KEY);
+const DB = 'hd-keystore';
+const OS = 'keys';
+const KID = 'wrap';
+
+// v1 (endast migrering)
+const V1_KEY = 'hd.keystore.v1';
+const V1_FAIL_KEY = 'hd.keystore.fails';
+const V1_ITERATIONS = 600_000;
+const V1_MAX_FAILS = 10;
 
 let unlocked = null; // { key, cloudId, lanIp } i minnet
 
@@ -39,19 +48,55 @@ function writeStore(k, v) {
   } catch { return false; }
 }
 
-async function deriveKey(pin, salt, iterations) {
-  const base = await crypto.subtle.importKey('raw', enc.encode(pin), 'PBKDF2', false, ['deriveKey']);
-  return crypto.subtle.deriveKey(
-    { name: 'PBKDF2', hash: 'SHA-256', salt, iterations },
-    base,
-    { name: 'AES-GCM', length: 256 },
-    false,
-    ['encrypt', 'decrypt']
-  );
+// ---------- IndexedDB: den icke-exporterbara nyckeln ----------
+
+function openDb() {
+  return new Promise((resolve, reject) => {
+    const r = indexedDB.open(DB, 1);
+    r.onupgradeneeded = () => r.result.createObjectStore(OS);
+    r.onsuccess = () => resolve(r.result);
+    r.onerror = () => reject(r.error);
+  });
 }
 
+async function idb(mode, fn) {
+  const db = await openDb();
+  try {
+    return await new Promise((resolve, reject) => {
+      const tx = db.transaction(OS, mode);
+      const req = fn(tx.objectStore(OS));
+      tx.oncomplete = () => resolve(req ? req.result : undefined);
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(tx.error);
+    });
+  } finally {
+    db.close();
+  }
+}
+
+const getWrapKey = () => idb('readonly', s => s.get(KID));
+const putWrapKey = (k) => idb('readwrite', s => s.put(k, KID));
+const delWrapKey = () => idb('readwrite', s => s.delete(KID));
+
+// ---------- Publikt ----------
+
+function cleanSecrets(secrets) {
+  if (!secrets || typeof secrets.key !== 'string' || !secrets.key.trim()) throw new Error('key-missing');
+  return {
+    key: secrets.key.trim(),
+    cloudId: (secrets.cloudId || '').trim(),
+    lanIp: (secrets.lanIp || '').trim(),
+  };
+}
+
+// Sparade uppgifter i aktuellt format.
 export function hasStored() {
   return readStore(STORE_KEY) !== null;
+}
+
+// Gammal PIN-lagring som ska flyttas med PIN en sista gång.
+export function needsMigration() {
+  return !hasStored() && readStore(V1_KEY) !== null;
 }
 
 export function isUnlocked() {
@@ -63,53 +108,65 @@ export function get() {
   return { ...unlocked };
 }
 
-export async function save(secrets, pin) {
-  if (typeof pin !== 'string' || pin.length < MIN_PIN) throw new Error('pin-short');
-  if (!secrets || typeof secrets.key !== 'string' || !secrets.key.trim()) throw new Error('key-missing');
-  const clean = {
-    key: secrets.key.trim(),
-    cloudId: (secrets.cloudId || '').trim(),
-    lanIp: (secrets.lanIp || '').trim(),
-  };
-  const salt = crypto.getRandomValues(new Uint8Array(16));
+export async function save(secrets) {
+  const clean = cleanSecrets(secrets);
+  let aes;
+  try {
+    aes = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+    await putWrapKey(aes);
+  } catch { throw new Error('storage-unavailable'); }
   const iv = crypto.getRandomValues(new Uint8Array(12));
-  const aes = await deriveKey(pin, salt, ITERATIONS);
-  const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, aes, enc.encode(JSON.stringify(clean)));
-  const blob = { v: 1, kdf: 'PBKDF2-SHA256', it: ITERATIONS, salt: b64(salt), iv: b64(iv), ct: b64(ct) };
+  const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv, additionalData: AAD }, aes, enc.encode(JSON.stringify(clean)));
+  const blob = { v: 2, alg: 'AES-GCM-256', iv: b64(iv), ct: b64(ct) };
   if (!writeStore(STORE_KEY, JSON.stringify(blob))) throw new Error('storage-unavailable');
-  writeStore(FAIL_KEY, null);
+  writeStore(V1_KEY, null);
+  writeStore(V1_FAIL_KEY, null);
   unlocked = clean;
 }
 
-export async function unlock(pin) {
+// Läser sparade uppgifter. Kastar 'nothing-stored' eller 'unreadable'
+// (t.ex. om webbläsarens IndexedDB rensats men inte localStorage).
+export async function open() {
   const raw = readStore(STORE_KEY);
   if (!raw) throw new Error('nothing-stored');
   try {
     const blob = JSON.parse(raw);
-    // Iterationstalet i lagringen får aldrig sänka skyddet under ITERATIONS.
-    const it = Math.max(Number(blob.it) || 0, ITERATIONS);
-    const aes = await deriveKey(pin, unb64(blob.salt), it);
-    const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: unb64(blob.iv) }, aes, unb64(blob.ct));
-    unlocked = JSON.parse(dec.decode(pt));
-    writeStore(FAIL_KEY, null);
+    const aes = await getWrapKey();
+    if (!aes) throw new Error('no-key');
+    const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: unb64(blob.iv), additionalData: AAD }, aes, unb64(blob.ct));
+    unlocked = cleanSecrets(JSON.parse(dec.decode(pt)));
     return true;
   } catch {
-    const fails = (parseInt(readStore(FAIL_KEY) || '0', 10) || 0) + 1;
-    if (fails >= MAX_FAILS) {
-      forget();
-      throw new Error('wiped');
-    }
-    writeStore(FAIL_KEY, String(fails));
-    throw new Error('wrong-pin');
+    throw new Error('unreadable');
   }
 }
 
-export function lock() {
-  unlocked = null;
+// Migrering från v1: PIN en sista gång, sedan v2. Kastar 'wrong-pin' eller 'wiped'.
+export async function migrate(pin) {
+  const raw = readStore(V1_KEY);
+  if (!raw) throw new Error('nothing-stored');
+  let secrets;
+  try {
+    const blob = JSON.parse(raw);
+    const it = Math.max(Number(blob.it) || 0, V1_ITERATIONS);
+    const base = await crypto.subtle.importKey('raw', enc.encode(String(pin || '')), 'PBKDF2', false, ['deriveKey']);
+    const aes = await crypto.subtle.deriveKey({ name: 'PBKDF2', hash: 'SHA-256', salt: unb64(blob.salt), iterations: it },
+      base, { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
+    const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: unb64(blob.iv) }, aes, unb64(blob.ct));
+    secrets = JSON.parse(dec.decode(pt));
+  } catch {
+    const fails = (parseInt(readStore(V1_FAIL_KEY) || '0', 10) || 0) + 1;
+    if (fails >= V1_MAX_FAILS) { await forget(); throw new Error('wiped'); }
+    writeStore(V1_FAIL_KEY, String(fails));
+    throw new Error('wrong-pin');
+  }
+  await save(secrets);
 }
 
-export function forget() {
+export async function forget() {
   unlocked = null;
   writeStore(STORE_KEY, null);
-  writeStore(FAIL_KEY, null);
+  writeStore(V1_KEY, null);
+  writeStore(V1_FAIL_KEY, null);
+  try { await delWrapKey(); } catch { /* ingen IndexedDB */ }
 }

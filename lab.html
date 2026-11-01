@@ -18,35 +18,32 @@
 <main>
   <header>
     <h1>Hemdashboard · testsida</h1>
-    <span class="tag">LAB 0.2.1</span>
+    <span class="tag" id="labTag">LAB</span>
   </header>
 
-  <!-- 1. Första gången: nyckel + PIN -->
-  <section class="card" id="setup">
+  <!-- 1. Första gången: nyckel -->
+  <section class="card hidden" id="setup">
     <h2>Anslutning</h2>
-    <p>Uppgifterna krypteras med din PIN och sparas bara i den här webbläsaren. De skickas aldrig någon annanstans än till din Homey.</p>
+    <p>Uppgifterna krypteras och sparas bara i den här webbläsaren. De skickas aldrig någon annanstans än till din Homey.</p>
     <label for="apiKey">API-nyckel</label>
     <input id="apiKey" type="password" autocomplete="off" autocapitalize="off" spellcheck="false">
     <label for="cloudId">Homey-ID (för moln – syns i adressen på my.homey.app)</label>
     <input id="cloudId" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" inputmode="text">
     <label for="lanIp">Homeys IP i hemnätet (för lokalt, t.ex. 192.168.x.x)</label>
     <input id="lanIp" type="text" autocomplete="off" inputmode="decimal">
-    <label for="pin">PIN (minst 6 tecken)</label>
-    <input id="pin" type="password" autocomplete="new-password" inputmode="numeric">
-    <label for="pin2">PIN igen</label>
-    <input id="pin2" type="password" autocomplete="new-password" inputmode="numeric">
     <div class="row">
       <button id="saveBtn" class="primary">Spara och fortsätt</button>
     </div>
   </section>
 
-  <!-- 2. Senare besök: lås upp -->
+  <!-- 2. Uppdatering från PIN-versionen (≤ 0.6.1) -->
   <section class="card hidden" id="unlock">
-    <h2>Lås upp</h2>
+    <h2>Uppdatering</h2>
+    <p>PIN behövs inte längre. Ange den en sista gång så flyttas nyckeln till den nya lagringen.</p>
     <label for="unlockPin">PIN</label>
     <input id="unlockPin" type="password" autocomplete="current-password" inputmode="numeric">
     <div class="row">
-      <button id="unlockBtn" class="primary">Lås upp</button>
+      <button id="unlockBtn" class="primary">Fortsätt</button>
       <button id="forgetBtn" class="danger">Glöm nyckeln</button>
     </div>
   </section>
@@ -70,7 +67,6 @@
     <div class="row">
       <button id="runBtn" class="primary">Kör testerna</button>
       <button id="rtBtn">Realtid 60 s</button>
-      <button id="lockBtn">Lås</button>
       <button id="forgetBtn2" class="danger">Glöm nyckeln</button>
     </div>
     <ol class="checks spaced" id="checks"></ol>
@@ -80,7 +76,7 @@
   <section class="card hidden" id="devCard">
     <h2>Enheter – visas bara här</h2>
     <p id="devCount"></p>
-    <p>Reglage finns bara för enheter med klassen light som är tillgängliga. Allt annat, även uttag, visas utan reglage.</p>
+    <p>Reglage finns bara för tillgängliga enheter med klassen light eller coffeemachine, och för uttag markerade som kaffebryggare (endast på/av). Allt annat visas utan reglage.</p>
     <ul class="devices" id="devices"></ul>
   </section>
 

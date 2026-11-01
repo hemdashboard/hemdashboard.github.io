@@ -23,30 +23,27 @@
     <span class="live" id="live" data-s="off">–</span>
   </header>
 
-  <!-- Första gången: nyckel + PIN -->
+  <!-- Första gången: nyckel -->
   <section class="card narrow hidden" id="setup">
     <h2>Anslutning</h2>
-    <p>Uppgifterna krypteras med din PIN och sparas bara i den här webbläsaren. De skickas aldrig någon annanstans än till din Homey.</p>
+    <p>Uppgifterna krypteras och sparas bara i den här webbläsaren. De skickas aldrig någon annanstans än till din Homey.</p>
     <label for="apiKey">API-nyckel</label>
     <input id="apiKey" type="password" autocomplete="off" autocapitalize="off" spellcheck="false">
     <label for="cloudId">Homey-ID (för moln – syns i adressen på my.homey.app)</label>
     <input id="cloudId" type="text" autocomplete="off" autocapitalize="off" spellcheck="false">
     <label for="lanIp">Homeys IP i hemnätet (för lokalt)</label>
     <input id="lanIp" type="text" autocomplete="off" inputmode="decimal">
-    <label for="pin">PIN (minst 6 tecken)</label>
-    <input id="pin" type="password" autocomplete="new-password" inputmode="numeric">
-    <label for="pin2">PIN igen</label>
-    <input id="pin2" type="password" autocomplete="new-password" inputmode="numeric">
     <div class="row"><button id="saveBtn" class="primary">Spara och fortsätt</button></div>
   </section>
 
-  <!-- Senare besök: lås upp -->
+  <!-- Uppdatering från PIN-versionen (≤ 0.6.1): PIN en sista gång -->
   <section class="card narrow hidden" id="unlock">
-    <h2>Lås upp</h2>
+    <h2>Uppdatering</h2>
+    <p>PIN behövs inte längre. Ange den en sista gång så flyttas nyckeln till den nya lagringen.</p>
     <label for="unlockPin">PIN</label>
     <input id="unlockPin" type="password" autocomplete="current-password" inputmode="numeric">
     <div class="row">
-      <button id="unlockBtn" class="primary">Lås upp</button>
+      <button id="unlockBtn" class="primary">Fortsätt</button>
       <button id="forgetBtn" class="danger">Glöm nyckeln</button>
     </div>
   </section>
@@ -121,7 +118,6 @@
         <p class="mono" id="connInfo">–</p>
         <ul class="diag mono" id="diag"></ul>
         <div class="row">
-          <button id="lockBtn">Lås</button>
           <button id="forgetBtn2" class="danger">Glöm nyckeln</button>
           <a class="btnlink ghost" href="lab.html">Testsida</a>
         </div>
