@@ -451,41 +451,35 @@ ul.devs.quick li.dev:first-child { padding-top: 0; }
 .motion[data-on="1"] svg path { animation: mo-pulse 1.6s var(--ease) infinite; }
 @keyframes mo-pulse { 50% { opacity: .35; } }
 
-/* Planritning */
+/* Planritning (0.6: schematisk geometri, floorplan.js) */
 .plan .card-head { flex-wrap: wrap; }
 .plan-tools { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
 button.ghostbtn { min-height: 34px; padding: 0 12px; background: transparent; border-color: var(--surface-2-edge); color: var(--text-2); }
 button.ghostbtn[aria-pressed="true"] { border-color: var(--accent); color: var(--text-1); }
-.plan-stage { position: relative; margin-top: 4px; border-radius: var(--r-md); overflow: hidden; border: 1px solid var(--surface-1-edge);
-              background: var(--bg); touch-action: manipulation; user-select: none; -webkit-user-select: none; }
-.plan-stage[data-edit="1"] { cursor: crosshair; border-color: var(--accent); }
-img.plan-img { display: block; width: 100%; height: auto; filter: invert(.92) hue-rotate(180deg) grayscale(1) contrast(.9); opacity: .55; pointer-events: none; }
-button.pm {
-  position: absolute; transform: translate(-50%, -50%); display: grid; justify-items: center; gap: 2px;
-  min-height: var(--touch); min-width: var(--touch); padding: 4px; background: transparent; border: 0; color: var(--text-2);
-}
-button.pm:hover { background: transparent; }
-.pm-dot {
-  width: 14px; height: 14px; border-radius: 50%; position: relative;
-  border: 2px solid var(--text-3); background: var(--surface-1); transition: background var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
-}
-.pm-text { display: grid; justify-items: center; padding: 1px 6px; border-radius: var(--r-sm); background: #111214CC; }
-.pm-label { font-size: 0.6875rem; color: var(--text-1); white-space: nowrap; line-height: 1.3; }
-.pm-sub { font-size: 0.625rem; color: var(--text-3); white-space: nowrap; line-height: 1.2; }
-.pm-sub:empty { display: none; }
-button.pm[data-lit="1"] .pm-dot { background: var(--accent); border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-dim), 0 0 14px #22D39A66; }
-button.pm[data-lit="1"] .pm-sub { color: var(--accent); }
-button.pm[data-open="1"] .pm-dot { border-color: var(--warn); }
-button.pm[data-motion="1"] .pm-dot::after {
-  content: ""; position: absolute; inset: -7px; border-radius: 50%; border: 1.5px solid var(--info);
-  animation: pm-ring 1.8s var(--ease) infinite;
-}
-@keyframes pm-ring { from { transform: scale(.6); opacity: 1; } to { transform: scale(1.5); opacity: 0; } }
-button.pm[data-sel="1"] .pm-dot { outline: 2px solid var(--warn); outline-offset: 3px; }
-.chip[data-placed="1"]::after { content: " •"; color: var(--accent); }
-.plan-upload { display: grid; gap: 8px; margin-top: 8px; }
-details.plan-add { margin-top: 12px; }
-details.plan-add summary { cursor: pointer; font-size: var(--fs-sm); color: var(--text-2); min-height: var(--touch); display: flex; align-items: center; }
+.fp-floors { display: grid; gap: 16px; grid-template-columns: 1fr; }
+@media (min-width: 760px) { .fp-floors { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; } }
+figure.fp-floor { margin: 0; min-width: 0; }
+figure.fp-floor figcaption { font-size: var(--fs-sm); color: var(--text-2); margin-bottom: 6px; }
+svg.fp { display: block; width: 100%; height: auto; max-height: 72vh; }
+.fp-wall { fill: var(--surface-2-edge); }
+.fp-poly { fill: var(--surface-1); stroke: none; transition: fill var(--dur) var(--ease); }
+.fp-area.out .fp-poly { fill: var(--surface-2); }
+.fp-area.aux .fp-poly { fill: var(--bg); }
+.fp-area.room { cursor: pointer; outline: none; }
+.fp-area.room:hover .fp-poly, .fp-area.room:focus-visible .fp-poly { fill: var(--surface-hover); }
+.fp-area.room[data-linked="0"] .fp-label { fill: var(--text-3); }
+.fp-label { fill: var(--text-1); font-family: var(--font-sans); font-size: 30px; font-weight: 500; pointer-events: none; }
+.fp-area.out .fp-label, .fp-area.aux .fp-label { fill: var(--text-3); font-weight: 400; font-size: 26px; }
+.fp-sub { fill: var(--text-3); font-family: var(--font-sans); font-size: 22px; pointer-events: none; }
+.fp-state { fill: var(--accent); font-family: var(--font-sans); font-size: 22px; pointer-events: none; }
+.fp-fix { fill: none; stroke: var(--surface-2-edge); stroke-width: 2; pointer-events: none; }
+.fp-entry { fill: none; stroke: var(--text-3); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.fp-area[data-lit="1"] .fp-poly { fill: #22D39A2E; }
+.fp-area[data-lit="1"]:hover .fp-poly { fill: #22D39A40; }
+.fp-area[data-open="1"] .fp-poly { stroke: var(--warn); stroke-width: 4; }
+.fp-area[data-motion="1"] .fp-poly { stroke: var(--info); stroke-width: 5; animation: fp-pulse 1.6s var(--ease) infinite; }
+@keyframes fp-pulse { 50% { stroke-opacity: .25; } }
+.fp-area[data-sel="1"] .fp-poly { stroke: var(--warn); stroke-width: 6; stroke-dasharray: 12 8; }
 #planRoot:not(:empty) { margin-bottom: var(--gap); }
 
 /* Energiflöde: nät → hus → laddbox */
@@ -504,7 +498,7 @@ svg.flow { display: block; width: 100%; max-width: 560px; height: auto; margin: 
 @keyframes fl-move { to { stroke-dashoffset: -24; } }
 
 @media (prefers-reduced-motion: reduce) {
-  .fl-dash, .motion[data-on="1"] svg path, button.pm[data-motion="1"] .pm-dot::after { animation: none; }
+  .fl-dash, .motion[data-on="1"] svg path, .fp-area[data-motion="1"] .fp-poly { animation: none; }
 }
 
 /* 0.5.1 – stjärna: visa reglaget under Snabbreglage */

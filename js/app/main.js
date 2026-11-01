@@ -16,7 +16,7 @@ import * as insights from './insights.js';
 import * as home from './home.js';
 import * as plan from './plan.js';
 
-export const APP_VERSION = '0.5.1';
+export const APP_VERSION = '0.6.0';
 
 // Ramspärr: meta-CSP kan inte sätta frame-ancestors. I en ram körs sidan aldrig.
 if (window.top !== window.self) {
@@ -428,6 +428,7 @@ async function onUnlocked() {
 // ---------- Start ----------
 
 purgeLegacy();
+plan.purgeOld();
 renderClock();
 showView();
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.0 – 2026-11-01
+- Planritningen är inbyggd: schematisk ritning av entréplan och övre plan med rumstyper (beslut 33). Ingen uppladdning längre.
+- Koppla rum: tryck på en yta och välj appens rum. Entydiga namn kopplas automatiskt. Kopplingen sparas lokalt.
+- Ytorna fylls när en lampa är tänd, får blå kant vid rörelse senaste minuten och gul kant när dörr eller fönster står öppet.
+- Den uppladdade bilden från 0.5.0 raderas ur webbläsaren (IndexedDB `hd-plans`).
+- Cache `hd-shell-v0.6.0`.
+
 ## 0.5.1 – 2026-11-01
 - Stjärna på varje reglage (lampor och kaffebryggare): stjärnmärkta visas även under Snabbreglage på Hem. Sparas lokalt i webbläsaren som enhets-ID. Utan sparade stjärnor visas kaffebryggarna. Stjärnan ändrar inte reglageregeln.
 - Cache `hd-shell-v0.5.1`.
