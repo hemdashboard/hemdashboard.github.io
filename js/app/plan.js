@@ -9,7 +9,7 @@ import { state, deviceList } from './state.js';
 import { h, toast, capVal, info } from './ui.js';
 import { el } from '../core/svg.js';
 import * as rooms from '../core/rooms.js';
-import { FLOORS, autoMap, points } from '../core/floorplan.js';
+import { FLOORS, autoMap, points, rooms as planAreas } from '../core/floorplan.js';
 import { motion } from '../core/activity.js';
 import { roomList, openRoom } from './roomsview.js';
 
@@ -53,6 +53,14 @@ function mapping(list) {
   const out = {};
   for (const [a, r] of Object.entries(m)) if (r && ids.has(r)) out[a] = r;
   return out;
+}
+
+// Appens rum som är kopplade till en utomhusyta i planritningen (Altan, Framsidan, Förråd ute).
+// Används av rumskorten för temperaturskalan. Kopplingen är lokal per webbläsare.
+export function isOutdoorRoom(roomId) {
+  if (!roomId) return false;
+  const m = mapping(roomList());
+  return planAreas().some(a => a.out && m[a.id] === roomId);
 }
 
 function setLink(areaId, roomId, list) {

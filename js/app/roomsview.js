@@ -13,17 +13,23 @@ import { hasControls, canWrite, isControlClass, controlClass, whyNoControl } fro
 import { motion, ago } from '../core/activity.js';
 import * as fav from '../core/favorites.js';
 import { brand, hotWater, titledValues } from '../core/devinfo.js';
+import { band, trend } from '../core/temperature.js';
+import { refOf } from './temps.js';
 
 const pending = new Map(); // id → antal pågående skrivningar
 let rerender = () => {};
 let refetch = () => {};
-let built = { sig: '', rows: new Map(), heads: new Map() };
+let built = { sig: '', rows: new Map(), heads: new Map(), temps: new Map() };
+let isOutdoor = () => false;
 let scrollTarget = null;
 
-export function init({ onRender, onRefetch }) { rerender = onRender; refetch = onRefetch; }
+export function init({ onRender, onRefetch, outdoor }) {
+  rerender = onRender; refetch = onRefetch;
+  if (typeof outdoor === 'function') isOutdoor = outdoor;
+}
 export function isPending(id) { return Boolean(pending.get(id)); }
 export function hasPending() { return pending.size > 0; }
-export function clearPending() { pending.clear(); built = { sig: '', rows: new Map(), heads: new Map() }; }
+export function clearPending() { pending.clear(); built = { sig: '', rows: new Map(), heads: new Map(), temps: new Map() }; }
 
 export function roomList() {
   return rooms.allRooms(state.zones, deviceList());
@@ -223,11 +229,47 @@ function groupOf(room) {
 function roomSummary(devs) {
   const ctl = devs.filter(d => hasControls(d));
   const lit = ctl.filter(d => capVal(d, 'onoff') === true).length;
-  const temps = devs.map(d => capVal(d, 'measure_temperature')).filter(v => typeof v === 'number' && Number.isFinite(v));
+  const sens = devs.filter(d => d.available !== false && Number.isFinite(capVal(d, 'measure_temperature')));
+  const temps = sens.map(d => capVal(d, 'measure_temperature'));
   const temp = temps.length ? temps.reduce((a, b) => a + b, 0) / temps.length : null;
+  const tr = trend(sens.map(d => ({ now: capVal(d, 'measure_temperature'), ref: refOf(d.id) })));
   const off = devs.filter(d => d.available === false).length;
-  return { ctl: ctl.length, lit, temp, off,
-    text: `${ctl.length ? `${lit}/${ctl.length} på` : `${devs.length} enh.`}${temp !== null ? ` · ${num(temp, 1)}°` : ''}${off ? ` · ${off} otillg.` : ''}` };
+  return { ctl: ctl.length, lit, temp, tr, off,
+    text: `${ctl.length ? `${lit}/${ctl.length} på` : `${devs.length} enh.`}${off ? ` · ${off} otillg.` : ''}` };
+}
+
+// Temperaturbricka i rumskortets rubrik: termometer, värde i bandets färg och trendpil.
+// Utan temperatursensor döljs brickan. Utan trenddata visas ingen pil.
+const SVGNS = 'http://www.w3.org/2000/svg';
+const TEMP_ICO = ['M14 14.8V5a2 2 0 0 0-4 0v9.8a4 4 0 1 0 4 0z', 'M12 11v6'];
+const ARROWS = { up: ['M7 17 17 7', 'M9 7h8v8'], down: ['M7 7l10 10', 'M17 9v8H9'], flat: ['M5 12h14', 'M14 7l5 5-5 5'] };
+function svgPaths(cls, ds) {
+  const svg = document.createElementNS(SVGNS, 'svg');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('aria-hidden', 'true');
+  svg.setAttribute('class', cls);
+  for (const d of ds) { const p = document.createElementNS(SVGNS, 'path'); p.setAttribute('d', d); svg.append(p); }
+  return svg;
+}
+function tempChip() {
+  const val = h('span.val');
+  const el = h('span.temp', { hidden: true, role: 'img' }, svgPaths('ico', TEMP_ICO), val,
+    svgPaths('tr up', ARROWS.up), svgPaths('tr down', ARROWS.down), svgPaths('tr flat', ARROWS.flat));
+  function update(s, outdoor) {
+    if (s.temp === null) { el.hidden = true; return; }
+    el.hidden = false;
+    el.dataset.band = band(s.temp, outdoor) || 'ok';
+    val.textContent = `${num(s.temp, 1)}°`;
+    const dir = s.tr ? s.tr.dir : '';
+    el.dataset.dir = dir || 'none';
+    const sign = s.tr && s.tr.delta > 0 ? '+' : s.tr && s.tr.delta < 0 ? '−' : '±';
+    const how = !s.tr ? 'trend saknas'
+      : `${dir === 'up' ? 'stiger' : dir === 'down' ? 'sjunker' : 'stabil'} ${sign}${num(Math.abs(s.tr.delta), 1)}° senaste timmen`;
+    const label = `${num(s.temp, 1)} grader, ${how}`;
+    el.setAttribute('title', `${num(s.temp, 1)}° · ${how}`);
+    el.setAttribute('aria-label', label);
+  }
+  return { el, update };
 }
 
 function structure() {
@@ -251,8 +293,11 @@ export function renderRooms(root) {
   if (sig !== built.sig || !root.firstChild) build(root, rs, sig, sel);
   else for (const x of rs) {
     for (const d of x.devs) { const row = built.rows.get(d.id); if (row && !isPending(d.id)) row.update(d); }
+    const s = roomSummary(x.devs);
     const head = built.heads.get(x.room.id);
-    if (head) head.textContent = roomSummary(x.devs).text;
+    if (head) head.textContent = s.text;
+    const tc = built.temps.get(x.room.id);
+    if (tc) tc.update(s, isOutdoor(x.room.id));
   }
   if (scrollTarget) {
     const el = root.querySelector(`[data-room="${CSS.escape(scrollTarget)}"]`);
@@ -262,7 +307,7 @@ export function renderRooms(root) {
 }
 
 function build(root, rs, sig, sel) {
-  built = { sig, rows: new Map(), heads: new Map() };
+  built = { sig, rows: new Map(), heads: new Map(), temps: new Map() };
   if (!rs.length) { root.replaceChildren(h('p.note', state.devices.size ? 'Inga rum med enheter.' : 'Hämtar…')); return; }
 
   // Valda rum som inte längre finns räknas inte.
@@ -287,10 +332,14 @@ function build(root, rs, sig, sel) {
       grid = h('div.roomcards');
       kids.push(grid);
     }
-    const meta = h('span.rc-meta', roomSummary(x.devs).text);
+    const s = roomSummary(x.devs);
+    const meta = h('span.rc-meta', s.text);
     built.heads.set(x.room.id, meta);
+    const tc = tempChip();
+    tc.update(s, isOutdoor(x.room.id));
+    built.temps.set(x.room.id, tc);
     const card = h('section.card.roomcard', { dataset: { room: x.room.id } },
-      h('div.rc-head', h('h3', x.room.name), meta));
+      h('div.rc-head', h('h3', x.room.name), h('span.rc-right', meta, tc.el)));
     if (x.ctl.length) {
       const ul = h('ul.devs');
       for (const d of x.ctl) { const r = controlRow(d); built.rows.set(d.id, r); ul.append(r.el); }

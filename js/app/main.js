@@ -15,8 +15,9 @@ import * as roomsview from './roomsview.js';
 import * as insights from './insights.js';
 import * as home from './home.js';
 import * as plan from './plan.js';
+import * as temps from './temps.js';
 
-export const APP_VERSION = '0.6.2';
+export const APP_VERSION = '0.6.3';
 
 // Ramspärr: meta-CSP kan inte sätta frame-ancestors. I en ram körs sidan aldrig.
 if (window.top !== window.self) {
@@ -252,6 +253,7 @@ function render() {
   } else if (v === 'weather') {
     weather.renderWeather($('weatherRoot'));
   } else if (v === 'rooms') {
+    temps.maybeLoad(scheduleRender); // trendens referenser, högst var tionde minut
     plan.renderPlan($('planRoot'));
     roomsview.renderRooms($('roomsRoot'));
   } else if (v === 'settings') {
@@ -392,6 +394,7 @@ function teardown() {
   state.energy = null; state.weather = null; state.diag = {};
   roomsview.clearPending();
   energy.resetLogs();
+  temps.reset();
   weather.forgetPosition();
   for (const id of ['ovKpi', 'ovFlow', 'ovPresence', 'ovQuick', 'ovTips', 'ovWx', 'ovIns', 'energyRoot', 'weatherRoot', 'planRoot', 'roomsRoot']) $(id).replaceChildren();
   setLive('off');
@@ -409,7 +412,7 @@ for (const id of ['forgetBtn', 'forgetBtn2']) {
 for (const b of document.querySelectorAll('[data-go]')) b.addEventListener('click', () => setView(b.dataset.go));
 $('retryBtn').addEventListener('click', () => connect());
 
-roomsview.init({ onRender: () => { if (state.view === 'rooms') roomsview.renderRooms($('roomsRoot')); else scheduleRender(); }, onRefetch: refetchSoon });
+roomsview.init({ onRender: () => { if (state.view === 'rooms') roomsview.renderRooms($('roomsRoot')); else scheduleRender(); }, onRefetch: refetchSoon, outdoor: plan.isOutdoorRoom });
 plan.init({ onOpenRoom: () => { roomsview.renderRooms($('roomsRoot')); requestAnimationFrame(() => $('roomsRoot').scrollIntoView({ block: 'start' })); } });
 
 async function onUnlocked() {

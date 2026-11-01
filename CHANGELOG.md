@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.3 – 2026-11-01
+- Temperaturbricka i rumskortets rubrik för rum med temperatursensor: termometer, värde och pil för trenden senaste timmen. Ersätter temperaturen i rubrikens text.
+- Färg inne: kallt under 19° (blå), lagom 19–23,5° (neutral), varmt över 23,5° (gul). Rum kopplade till en utomhusyta i planritningen: blå kant och blått värde under 5° (frostrisk), annars neutralt.
+- Trend: upp eller ned vid en ändring på minst 0,3° senaste timmen, annars stabil. Medel över rummets sensorer. Ingen pil när data saknas.
+- Referensvärdet hämtas ur Insights (ett anrop per sensor, senaste timmen; reservanrop med sex timmar när timmen har färre än två punkter) när rumsvyn visas, högst var tionde minut. Nuvärdet följer realtiden. Endast läsning.
+- Cache `hd-shell-v0.6.3`.
+
 ## 0.6.2 – 2026-11-01
 - Ingen PIN (beslut 35). Anslutningsuppgifterna krypteras med AES-GCM och en icke-exporterbar nyckel i webbläsaren (WebCrypto i IndexedDB) och öppnas automatiskt. Nyckeln ligger aldrig i klartext i lagringen. Telefonens skärmlås är spärren mot den som håller i telefonen.
 - Uppdatering från PIN-versionen: PIN anges en sista gång, sedan flyttas nyckeln till den nya lagringen.

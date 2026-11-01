@@ -147,9 +147,24 @@ h2.group + .roomcards { margin-top: 0; }
 @media (min-width: 760px) { .roomcards { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; } }
 @media (min-width: 1080px) { .roomcards { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 .roomcard { padding: 14px 16px; scroll-margin-top: 64px; min-width: 0; }
-.rc-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 6px; }
+.rc-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 6px; }
 .rc-head h3 { margin: 0; font-size: var(--fs-md); font-weight: 600; color: var(--text-1); }
 .rc-meta { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--text-3); white-space: nowrap; }
+.rc-right { display: inline-flex; align-items: center; gap: 10px; min-width: 0; }
+
+/* Temperaturbricka (0.6.3): värde i bandets färg, pil för trenden senaste timmen */
+.temp { display: inline-flex; align-items: center; gap: 4px; font-family: var(--font-mono); font-size: var(--fs-sm); white-space: nowrap;
+  padding: 3px 8px 3px 6px; border-radius: var(--r-sm); background: var(--surface-2); border: 1px solid var(--surface-2-edge); color: var(--text-1); }
+.temp[hidden] { display: none; }
+.temp svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.temp .ico { color: var(--text-3); }
+.temp[data-band="cold"] .val, .temp[data-band="frost"] .val { color: var(--cold); }
+.temp[data-band="warm"] .val { color: var(--warn); }
+.temp[data-band="frost"] { border-color: color-mix(in srgb, var(--cold) 35%, transparent); }
+.temp .tr { display: none; color: var(--text-3); }
+.temp[data-dir="up"] .tr.up { display: block; color: var(--warn); }
+.temp[data-dir="down"] .tr.down { display: block; color: var(--cold); }
+.temp[data-dir="flat"] .tr.flat { display: block; }
 
 /* Styrbara enheter: rad med namn, läge och strömbrytare; dimmer under när den är på */
 ul.devs { list-style: none; margin: 0; padding: 0; }

@@ -109,6 +109,9 @@ async function entries(log, resolution, key, fallback) {
 
 export function resetLogs() { logsCache = { at: 0, list: [] }; }
 
+// Delas med temperaturtrenden (temps.js): samma loggista och cache, inga extra listanrop.
+export { logs as insightLogList, findLog };
+
 export async function loadEnergy() {
   if (!state.homey || !state.homey.active) return;
   const m = meter();
