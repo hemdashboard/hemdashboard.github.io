@@ -3,7 +3,8 @@
 //
 // Lås och larm är säkerhetskritiska (K, 04). Här läses bara; ingen funktion här eller i
 // vyn skickar något till Homey. Åtgärdskapabiliteter (CMD_*) utom larmläget läses aldrig.
-// Namn på igenkända ansikten (NTFY_KNOWN_FACE_DETECTION) används inte.
+// Namn på igenkända ansikten (NTFY_KNOWN_FACE_DETECTION) visas aldrig: bara tiden för senaste
+// ändring används, som händelsen "Person". Namnet lagras och visas aldrig.
 
 import { changedAt } from './activity.js';
 
@@ -66,6 +67,7 @@ export function alarms(devices) {
 const EVENTS = [
   ['NTFY_PRESS_DOORBELL', 'Ringklocka'],
   ['NTFY_FACE_DETECTION', 'Person'],
+  ['NTFY_KNOWN_FACE_DETECTION', 'Person'], // tiden endast; namnet lagras och visas aldrig. Samma namn igen ger troligen ingen ny tid (A)
   ['NTFY_MOTION_DETECTION', 'Rörelse'],
   ['alarm_motion', 'Rörelse'],
   ['NTFY_VEHICLE_DETECTED', 'Fordon'],

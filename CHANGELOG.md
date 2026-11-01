@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.1 – 2026-11-01
+- Kamera: igenkänt ansikte räknas som händelsen Person (bara tiden; namnet lagras och visas aldrig). Rättar att en kamera kunde visa en äldre händelse när den senaste var ett igenkänt ansikte (H1, ej verifierat).
+- Informationstexten säger att tiderna kommer från Homey och kan ligga upp till en minut efter kamerans egen tid.
+- Cache `hd-shell-v0.7.1`.
+
 ## 0.7.0 – 2026-11-01
 - Hem: kort för lås och larm mellan nyckeltalen och närvaro. Endast visning (K), inga reglage.
   - Lås: låst eller olåst med tid för senaste ändring, dörren öppen eller stängd och lågt batteri. Mint = låst, gult = olåst eller lågt batteri, rött = olåst och dörren öppen.

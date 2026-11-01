@@ -98,6 +98,6 @@ export function renderCameras(root, now = Date.now()) {
       h('span.cam-txt', h('span.cam-name', c.name || 'Kamera'), h('span.cam-ev', evTxt)),
       c.battery !== null ? h('span.cam-bat', { dataset: { low: low ? '1' : '0' } }, `${Math.round(c.battery)} %`) : null));
   }
-  kids.push(h('p.fine', 'Ögonblicksbilder visas inte: Homey ger ingen bild att läsa. Händelsetiden är när kamerans senaste notis ändrades. Igenkända namn visas inte.'));
+  kids.push(h('p.fine', 'Tiderna kommer från Homey och kan ligga upp till en minut efter kamerans egen tid. Igenkänt ansikte visas som Person, utan namn. Ögonblicksbilder visas inte: Homey ger ingen bild att läsa.'));
   root.replaceChildren(h('div.camlist', ...kids));
 }

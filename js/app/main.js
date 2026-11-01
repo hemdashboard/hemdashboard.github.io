@@ -18,7 +18,7 @@ import * as plan from './plan.js';
 import * as temps from './temps.js';
 import * as security from './security.js';
 
-export const APP_VERSION = '0.7.0';
+export const APP_VERSION = '0.7.1';
 
 // Ramspärr: meta-CSP kan inte sätta frame-ancestors. I en ram körs sidan aldrig.
 if (window.top !== window.self) {
