@@ -226,13 +226,29 @@ function groupOf(room) {
   return p && p.parent ? p.name || '' : '';
 }
 
-function roomSummary(devs) {
-  const ctl = devs.filter(d => hasControls(d));
-  const lit = ctl.filter(d => capVal(d, 'onoff') === true).length;
+// Rummets temperatur (medel av tillgängliga sensorer) och trend senaste timmen.
+// Delas med planritningen. { temp: tal | null, tr: { delta, dir } | null }
+export function roomTemp(devs) {
   const sens = devs.filter(d => d.available !== false && Number.isFinite(capVal(d, 'measure_temperature')));
   const temps = sens.map(d => capVal(d, 'measure_temperature'));
   const temp = temps.length ? temps.reduce((a, b) => a + b, 0) / temps.length : null;
   const tr = trend(sens.map(d => ({ now: capVal(d, 'measure_temperature'), ref: refOf(d.id) })));
+  return { temp, tr };
+}
+
+// Text för temperaturbrickans titel och skärmläsare, t.ex. "21,4° · stiger +0,6° senaste timmen".
+export function tempText(t) {
+  const dir = t.tr ? t.tr.dir : '';
+  const sign = t.tr && t.tr.delta > 0 ? '+' : t.tr && t.tr.delta < 0 ? '−' : '±';
+  const how = !t.tr ? 'trend saknas'
+    : `${dir === 'up' ? 'stiger' : dir === 'down' ? 'sjunker' : 'stabil'} ${sign}${num(Math.abs(t.tr.delta), 1)}° senaste timmen`;
+  return { short: `${num(t.temp, 1)}° · ${how}`, label: `${num(t.temp, 1)} grader, ${how}` };
+}
+
+function roomSummary(devs) {
+  const ctl = devs.filter(d => hasControls(d));
+  const lit = ctl.filter(d => capVal(d, 'onoff') === true).length;
+  const { temp, tr } = roomTemp(devs);
   const off = devs.filter(d => d.available === false).length;
   return { ctl: ctl.length, lit, temp, tr, off,
     text: `${ctl.length ? `${lit}/${ctl.length} på` : `${devs.length} enh.`}${off ? ` · ${off} otillg.` : ''}` };
@@ -242,7 +258,8 @@ function roomSummary(devs) {
 // Utan temperatursensor döljs brickan. Utan trenddata visas ingen pil.
 const SVGNS = 'http://www.w3.org/2000/svg';
 const TEMP_ICO = ['M14 14.8V5a2 2 0 0 0-4 0v9.8a4 4 0 1 0 4 0z', 'M12 11v6'];
-const ARROWS = { up: ['M7 17 17 7', 'M9 7h8v8'], down: ['M7 7l10 10', 'M17 9v8H9'], flat: ['M5 12h14', 'M14 7l5 5-5 5'] };
+export const TEMP_ICO_PATHS = TEMP_ICO;
+export const ARROWS = { up: ['M7 17 17 7', 'M9 7h8v8'], down: ['M7 7l10 10', 'M17 9v8H9'], flat: ['M5 12h14', 'M14 7l5 5-5 5'] };
 function svgPaths(cls, ds) {
   const svg = document.createElementNS(SVGNS, 'svg');
   svg.setAttribute('viewBox', '0 0 24 24');
@@ -260,14 +277,10 @@ function tempChip() {
     el.hidden = false;
     el.dataset.band = band(s.temp, outdoor) || 'ok';
     val.textContent = `${num(s.temp, 1)}°`;
-    const dir = s.tr ? s.tr.dir : '';
-    el.dataset.dir = dir || 'none';
-    const sign = s.tr && s.tr.delta > 0 ? '+' : s.tr && s.tr.delta < 0 ? '−' : '±';
-    const how = !s.tr ? 'trend saknas'
-      : `${dir === 'up' ? 'stiger' : dir === 'down' ? 'sjunker' : 'stabil'} ${sign}${num(Math.abs(s.tr.delta), 1)}° senaste timmen`;
-    const label = `${num(s.temp, 1)} grader, ${how}`;
-    el.setAttribute('title', `${num(s.temp, 1)}° · ${how}`);
-    el.setAttribute('aria-label', label);
+    el.dataset.dir = s.tr ? s.tr.dir : 'none';
+    const tt = tempText(s);
+    el.setAttribute('title', tt.short);
+    el.setAttribute('aria-label', tt.label);
   }
   return { el, update };
 }

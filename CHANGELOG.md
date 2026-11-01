@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.4 – 2026-11-01
+- Planritningen visar samma temperaturbricka som rumskorten ovanför rumsnamnet: termometer, värde i bandets färg och trendpil. Utomhusytor med utomhusskalan (frostkant under 5°).
+- Endast kopplade rum med temperatursensor. Brickan tar inte emot tryck; tryck på rummet öppnar det som förut.
+- Brickan är 15 % större än i mockupens första version och krymps automatiskt bara i ytor där den inte får plats.
+- Delad logik: `roomTemp` och `tempText` i rumsvyn används av både rumskorten och planritningen. Inga nya Insights-anrop.
+- Cache `hd-shell-v0.6.4`.
+
 ## 0.6.3 – 2026-11-01
 - Temperaturbricka i rumskortets rubrik för rum med temperatursensor: termometer, värde och pil för trenden senaste timmen. Ersätter temperaturen i rubrikens text.
 - Färg inne: kallt under 19° (blå), lagom 19–23,5° (neutral), varmt över 23,5° (gul). Rum kopplade till en utomhusyta i planritningen: blå kant och blått värde under 5° (frostrisk), annars neutralt.

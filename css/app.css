@@ -488,6 +488,20 @@ svg.fp .fp-area.outside .fp-poly { stroke: var(--surface-2-edge); stroke-width: 
 .fp-area.aux .fp-label { fill: var(--text-3); font-weight: 400; font-size: 26px; }
 .fp-sub { fill: var(--text-3); font-family: var(--font-sans); font-size: 22px; pointer-events: none; }
 .fp-state { fill: var(--accent); font-family: var(--font-sans); font-size: 22px; pointer-events: none; }
+/* Temperaturbricka i planritningen (0.6.4) – samma band och pilar som i rumskorten */
+.fp-temp { pointer-events: none; }
+.fp-temp[data-show="0"] { display: none; }
+.fp-temp-bg { fill: var(--surface-2); stroke: var(--surface-2-edge); stroke-width: 2; }
+.fp-temp[data-band="frost"] .fp-temp-bg { stroke: color-mix(in srgb, var(--cold) 45%, transparent); }
+.fp-temp-ico, .fp-tr { fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.fp-temp-ico { stroke: var(--text-3); }
+.fp-temp-val { fill: var(--text-1); font-family: var(--font-mono); font-size: 28.75px; }
+.fp-temp[data-band="cold"] .fp-temp-val, .fp-temp[data-band="frost"] .fp-temp-val { fill: var(--cold); }
+.fp-temp[data-band="warm"] .fp-temp-val { fill: var(--warn); }
+.fp-tr { display: none; stroke: var(--text-3); }
+.fp-temp[data-dir="up"] .fp-tr.up { display: inline; stroke: var(--warn); }
+.fp-temp[data-dir="down"] .fp-tr.down { display: inline; stroke: var(--cold); }
+.fp-temp[data-dir="flat"] .fp-tr.flat { display: inline; }
 .fp-fix { fill: none; stroke: var(--surface-2-edge); stroke-width: 2; pointer-events: none; }
 .fp-entry { fill: none; stroke: var(--text-3); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
 .fp-area[data-lit="1"] .fp-poly { fill: #22D39A2E; }

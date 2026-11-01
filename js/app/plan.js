@@ -6,12 +6,13 @@
 // och styr ingenting.
 
 import { state, deviceList } from './state.js';
-import { h, toast, capVal, info } from './ui.js';
+import { h, toast, capVal, info, num } from './ui.js';
 import { el } from '../core/svg.js';
 import * as rooms from '../core/rooms.js';
 import { FLOORS, autoMap, points, rooms as planAreas } from '../core/floorplan.js';
 import { motion } from '../core/activity.js';
-import { roomList, openRoom } from './roomsview.js';
+import { roomList, openRoom, roomTemp, tempText, TEMP_ICO_PATHS, ARROWS } from './roomsview.js';
+import { band } from '../core/temperature.js';
 
 const MAP_KEY = 'hd.plan.map.v1';
 const OLD_DB = 'hd-plans'; // 0.5.0: uppladdad bild i IndexedDB, tas bort
@@ -94,6 +95,52 @@ function stateText(s) {
   return parts.join(' · ');
 }
 
+// ---------- Temperaturbricka ----------
+// Samma bricka som i rumskorten, ritad i SVG ovanför rumsnamnet: termometer, värde i
+// bandets färg och trendpil. Döljs i rum utan temperatursensor. Bredden följer texten.
+
+const K = 1.15; // 15 % större än första mockupen, för läsbarhet på mobil
+const TB = { h: 40 * K, pad: 8 * K, ico: 30 * K, arrow: 30 * K, gap: 4 * K, ch: 15.2 * K, rx: 8 * K, dy: 9 * K, lift: 58, margin: 12 };
+
+function icon(paths, cls) {
+  const g = el('g', { class: cls });
+  for (const d of paths) g.append(el('path', { d }));
+  return g;
+}
+
+// maxW: ytans bredd minus marginal. Får brickan inte plats krymps den bara i den ytan.
+function tempBadge(cx, cy, maxW) {
+  const g = el('g', { class: 'fp-temp', 'data-show': '0', 'aria-hidden': 'true' });
+  const rect = el('rect', { class: 'fp-temp-bg', height: TB.h, rx: TB.rx, y: cy - TB.h / 2 });
+  const ico = icon(TEMP_ICO_PATHS, 'fp-temp-ico');
+  const val = el('text', { class: 'fp-temp-val', y: cy + TB.dy });
+  const arrows = { up: icon(ARROWS.up, 'fp-tr up'), down: icon(ARROWS.down, 'fp-tr down'), flat: icon(ARROWS.flat, 'fp-tr flat') };
+  const title = el('title');
+  g.append(title, rect, ico, val, arrows.up, arrows.down, arrows.flat);
+  function update(t, outdoor) {
+    if (t.temp === null) { g.setAttribute('data-show', '0'); return; }
+    g.setAttribute('data-show', '1');
+    g.setAttribute('data-band', band(t.temp, outdoor) || 'ok');
+    const dir = t.tr ? t.tr.dir : 'none';
+    g.setAttribute('data-dir', dir);
+    val.textContent = `${num(t.temp, 1)}°`;
+    title.textContent = tempText(t).short;
+    const tw = val.textContent.length * TB.ch;
+    const w = TB.pad + TB.ico + TB.gap + tw + (dir !== 'none' ? TB.gap + TB.arrow : 0) + TB.pad + 2;
+    const x0 = cx - w / 2;
+    rect.setAttribute('x', x0); rect.setAttribute('width', w);
+    const s = TB.ico / 24;
+    ico.setAttribute('transform', `translate(${x0 + TB.pad} ${cy - TB.ico / 2}) scale(${s})`);
+    val.setAttribute('x', x0 + TB.pad + TB.ico + TB.gap);
+    const ax = x0 + TB.pad + TB.ico + TB.gap + tw + TB.gap;
+    for (const a of Object.values(arrows)) a.setAttribute('transform', `translate(${ax} ${cy - TB.arrow / 2}) scale(${TB.arrow / 24})`);
+    const fit = maxW > 0 && w > maxW ? maxW / w : 1;
+    if (fit < 1) g.setAttribute('transform', `translate(${cx} ${cy}) scale(${fit.toFixed(3)}) translate(${-cx} ${-cy})`);
+    else g.removeAttribute('transform');
+  }
+  return { g, update };
+}
+
 // ---------- Rendering ----------
 
 export function renderPlan(root, now = Date.now()) {
@@ -132,7 +179,10 @@ function floorSvg(f, list, map) {
       }
       const st = el('text', { x, y: y + 34, class: 'fp-state', 'text-anchor': 'middle' });
       g.append(st);
-      if (room) built.areas.set(a.id, { g, st, room });
+      const xs = a.pts.map(p => p[0]);
+      const tc = room ? tempBadge(x, y - TB.lift, Math.max(...xs) - Math.min(...xs) - 2 * TB.margin) : null;
+      if (tc) g.append(tc.g);
+      if (room) built.areas.set(a.id, { g, st, room, tc, out: Boolean(a.out) });
     }
     if (a.kind === 'room') {
       g.setAttribute('tabindex', '0');
@@ -201,6 +251,7 @@ function update(now) {
     x.g.setAttribute('data-motion', s.moving ? '1' : '0');
     x.g.setAttribute('data-open', s.open ? '1' : '0');
     x.st.textContent = stateText(s);
+    if (x.tc) x.tc.update(roomTemp(rooms.devicesInRoom(x.room, deviceList(), state.zones)), x.out);
     if (s.lit) lit += 1;
     if (s.moving) moving += 1;
   }
