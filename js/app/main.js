@@ -13,8 +13,10 @@ import * as energy from './energy.js';
 import * as weather from './weather.js';
 import * as roomsview from './roomsview.js';
 import * as insights from './insights.js';
+import * as home from './home.js';
+import * as plan from './plan.js';
 
-export const APP_VERSION = '0.4.0';
+export const APP_VERSION = '0.5.0';
 
 // Ramspärr: meta-CSP kan inte sätta frame-ancestors. I en ram körs sidan aldrig.
 if (window.top !== window.self) {
@@ -142,7 +144,8 @@ function onRealtime(uri, event, data) {
     if (!d) return;
     const p = [event, data].find(x => x && typeof x === 'object' && typeof x.capabilityId === 'string' && 'value' in x);
     if (p && d.capabilitiesObj && d.capabilitiesObj[p.capabilityId]) {
-      d.capabilitiesObj[p.capabilityId] = { ...d.capabilitiesObj[p.capabilityId], value: p.value };
+      // lastUpdated följer med så att "senaste rörelse" och närvaro "sedan" stämmer utan omläsning.
+      d.capabilitiesObj[p.capabilityId] = { ...d.capabilitiesObj[p.capabilityId], value: p.value, lastUpdated: Date.now() };
       if (!roomsview.isPending(id)) scheduleRender();
     } else {
       refetchSoon(id); // okänd form eller annan händelse – läs om enheten
@@ -232,6 +235,15 @@ function render() {
   const v = state.view;
   if (v === 'home') {
     $('ovKpi').replaceChildren(...energy.kpiTiles(() => setView('energy')));
+    const fc = home.flowCard();
+    $('ovFlow').replaceChildren(...(fc ? [fc] : []));
+    $('ovFlow').classList.toggle('hidden', !fc);
+    $('ovPresence').replaceChildren(...home.presenceBody());
+    if (!roomsview.hasPending()) {
+      const q = home.quickBody();
+      $('ovQuick').replaceChildren(...q);
+      $('ovQuickCard').classList.toggle('hidden', !q.length);
+    }
     $('ovTips').replaceChildren(...energy.tipsBody());
     $('ovWx').replaceChildren(...weather.weatherCardBody());
     $('ovIns').replaceChildren(...insights.insightsBody());
@@ -240,6 +252,7 @@ function render() {
   } else if (v === 'weather') {
     weather.renderWeather($('weatherRoot'));
   } else if (v === 'rooms') {
+    plan.renderPlan($('planRoot'));
     roomsview.renderRooms($('roomsRoot'));
   } else if (v === 'settings') {
     renderSettings();
@@ -379,7 +392,7 @@ function teardown() {
   roomsview.clearPending();
   energy.resetLogs();
   weather.forgetPosition();
-  for (const id of ['ovKpi', 'ovTips', 'ovWx', 'ovIns', 'energyRoot', 'weatherRoot', 'roomsRoot']) $(id).replaceChildren();
+  for (const id of ['ovKpi', 'ovFlow', 'ovPresence', 'ovQuick', 'ovTips', 'ovWx', 'ovIns', 'energyRoot', 'weatherRoot', 'planRoot', 'roomsRoot']) $(id).replaceChildren();
   setLive('off');
 }
 
@@ -401,6 +414,7 @@ for (const b of document.querySelectorAll('[data-go]')) b.addEventListener('clic
 $('retryBtn').addEventListener('click', () => connect());
 
 roomsview.init({ onRender: () => { if (state.view === 'rooms') roomsview.renderRooms($('roomsRoot')); else scheduleRender(); }, onRefetch: refetchSoon });
+plan.init({ onOpenRoom: () => { roomsview.renderRooms($('roomsRoot')); requestAnimationFrame(() => $('roomsRoot').scrollIntoView({ block: 'start' })); } });
 
 async function onUnlocked() {
   state.homey = createHomey(keystore.get());

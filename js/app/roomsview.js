@@ -9,7 +9,8 @@
 import { state, prefs, setPref, deviceList } from './state.js';
 import { h, num, toast, capVal } from './ui.js';
 import * as rooms from '../core/rooms.js';
-import { hasControls, canWrite, isControlClass } from '../core/controls.js';
+import { hasControls, canWrite, isControlClass, controlClass, whyNoControl } from '../core/controls.js';
+import { motion, ago } from '../core/activity.js';
 import { brand, hotWater, titledValues } from '../core/devinfo.js';
 
 const pending = new Map(); // id → antal pågående skrivningar
@@ -50,8 +51,8 @@ const READ = [
   ['onoff', v => (v ? 'På' : 'Av')],
   ['dim', v => `${Math.round(v * 100)} %`],
   ['locked', v => (v ? 'Låst' : 'Olåst')],
+  ['presence', v => (v ? 'Hemma' : 'Borta')],
   ['alarm_contact', v => (v ? 'Öppen' : 'Stängd')],
-  ['alarm_motion', v => (v ? 'Rörelse' : 'Ingen rörelse')],
   ['alarm_water', v => (v ? 'Vatten' : 'Torrt')],
   ['alarm_smoke', v => (v ? 'Rök' : 'Ingen rök')],
   ['measure_temperature', v => `${num(v, 1)}°`],
@@ -66,7 +67,7 @@ const READ = [
   ['measure_battery', v => `batteri ${num(v)} %`],
 ];
 
-const KNOWN = new Set(READ.map(([c]) => c));
+const KNOWN = new Set([...READ.map(([c]) => c), 'alarm_motion']);
 
 function readValues(d) {
   const out = [];
@@ -115,7 +116,7 @@ async function write(d, cap, value) {
 // ---------- Rader ----------
 // Varje rad har update(d) som bara ändrar text och attribut, aldrig strukturen.
 
-function controlRow(d0) {
+export function controlRow(d0) {
   let d = d0;
   const nameTxt = h('span');
   const name = h('span.dev-name', nameTxt, brandEl(d));
@@ -133,7 +134,7 @@ function controlRow(d0) {
     range.addEventListener('input', () => { st.textContent = `${range.value} %`; });
     range.addEventListener('change', () => { dragging = false; write(d, 'dim', Number(range.value) / 100); });
   }
-  const li = h('li.dev', { dataset: { ctl: '1', kind: d.class } },
+  const li = h('li.dev', { dataset: { ctl: '1', kind: controlClass(d) || '' } },
     h('div.dev-top', h('div.dev-text', name, st), sw), range);
   function update(nd) {
     d = nd;
@@ -156,16 +157,41 @@ function controlRow(d0) {
   return { el: li, update };
 }
 
+// Rörelseikon: fylld när sensorn rapporterat rörelse senaste minuten, annars kontur.
+// Tiden anger senaste rörelse. Uppdateras av realtid och var 30:e sekund.
+const MOTION_SVG = 'M12 10a2 2 0 1 1 0 4 2 2 0 0 1 0-4zM8.5 8.5a5 5 0 0 0 0 7M15.5 8.5a5 5 0 0 1 0 7M5.6 5.6a9 9 0 0 0 0 12.8M18.4 5.6a9 9 0 0 1 0 12.8';
+function motionEl() {
+  const ns = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(ns, 'svg');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('aria-hidden', 'true');
+  const path = document.createElementNS(ns, 'path');
+  path.setAttribute('d', MOTION_SVG);
+  svg.append(path);
+  const txt = h('span.mo-txt');
+  return { el: h('span.motion', { dataset: { on: '0' } }, svg, txt), txt };
+}
+
 function readRow(d0) {
   const nameTxt = h('span');
   const name = h('span.ro-name', nameTxt, brandEl(d0));
   const val = h('span.ro-val');
-  const li = h('li.ro', { dataset: { ctl: '0' } }, name, val);
+  const mo = motion(d0) ? motionEl() : null;
+  const li = h('li.ro', { dataset: { ctl: '0' } }, name, h('span.ro-right', mo ? mo.el : null, val));
   function update(d) {
     const off = d.available === false;
     li.classList.toggle('off', off);
     nameTxt.textContent = d.name || '(namnlös)';
-    val.textContent = off ? 'Otillgänglig' : readValues(d).join(' · ') || '–';
+    const rest = off ? 'Otillgänglig' : readValues(d).join(' · ');
+    if (mo) {
+      const m = motion(d);
+      mo.el.dataset.on = !off && m && m.active ? '1' : '0';
+      mo.el.setAttribute('title', m && m.now ? 'Rörelse nu' : m && m.active ? 'Rörelse senaste minuten' : 'Ingen rörelse senaste minuten');
+      mo.txt.textContent = off || !m ? '' : m.now ? 'nu' : m.last ? ago(m.last) : '–';
+      val.textContent = rest;
+    } else {
+      val.textContent = rest || '–';
+    }
   }
   update(d0);
   return { el: li, update };
@@ -283,6 +309,10 @@ export function ruleCheck() {
   const cls = devs.filter(isControlClass).length;
   const unavailable = devs.filter(d => d.available === false).length;
   const ok = wrong === 0 && controls === allowed;
+  // Utan reglage trots lampa/kaffebryggare i class eller virtualClass: skäl utan namn eller ID.
+  const why = new Map();
+  for (const d of devs) { const w = whyNoControl(d); if (w) why.set(w, (why.get(w) || 0) + 1); }
+  const whyTxt = [...why].map(([w, n]) => `${n} × ${w}`).join('; ');
   return `${ok ? 'OK' : 'FEL'} · ${devs.length} enheter, ${cls} light/coffeemachine, ${controls} med reglage, ` +
-    `${wrong} utanför regeln, ${unavailable} otillgängliga`;
+    `${wrong} utanför regeln, ${unavailable} otillgängliga${whyTxt ? ` · utan reglage: ${whyTxt}` : ''}`;
 }

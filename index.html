@@ -62,6 +62,15 @@
   <section class="view hidden" id="v-home">
     <div class="grid">
       <div class="kpis span2" id="ovKpi" aria-label="Nyckeltal"></div>
+      <div class="span2 slot hidden" id="ovFlow"></div>
+      <section class="card">
+        <h2 class="card-title">Hemma</h2>
+        <div id="ovPresence"></div>
+      </section>
+      <section class="card hidden" id="ovQuickCard">
+        <h2 class="card-title">Snabbreglage</h2>
+        <div id="ovQuick"></div>
+      </section>
       <section class="card">
         <button class="card-link" data-go="energy"><h2>Smarta tips</h2><span class="chev" aria-hidden="true">›</span></button>
         <div class="tips" id="ovTips"></div>
@@ -79,7 +88,7 @@
 
   <section class="view hidden" id="v-energy"><div class="grid" id="energyRoot"></div></section>
   <section class="view hidden" id="v-weather"><div class="grid" id="weatherRoot"></div></section>
-  <section class="view hidden" id="v-rooms"><div id="roomsRoot"></div></section>
+  <section class="view hidden" id="v-rooms"><div id="planRoot"></div><div id="roomsRoot"></div></section>
 
   <!-- Inställningar -->
   <section class="view hidden" id="v-settings">

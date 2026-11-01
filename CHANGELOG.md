@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.5.0 – 2026-11-01
+- Kaffebryggare som strömbrytare: ett uttag markerat som kaffebryggare i Homey (`class` socket, `virtualClass` coffeemachine) får reglage för `onoff`, även i skrivvägen (beslut 32). Snabbreglage på Hem.
+- Regelkontrollen visar varför lampor och kaffebryggare saknar reglage (klass, otillgänglig, ej skrivbar), utan namn eller ID.
+- Rörelsesensorer: ikon som lyser vid rörelse senaste minuten och tid för senaste rörelse i stället för "Ingen rörelse". Realtid sätter `lastUpdated`.
+- Närvaro på Hem: initial, hemma/borta och sedan när, från enheter med `presence`. Närvaroenheter visar Hemma/Borta i rumsvyn.
+- Planritning överst i Rum: egen bild som laddas upp och sparas lokalt (IndexedDB), rum placeras genom att trycka på bilden, punkterna visar tänt, rörelse och öppet. Tryck på ett rum öppnar det.
+- Energiflöde nät → hus → laddbox på Hem när en laddbox laddar, animerat efter effekt. Endast visning.
+- Cache `hd-shell-v0.5.0`.
+
 ## 0.4.0 – 2026-11-01
 - Ny stil efter Marcus valda mockup: neutral grafit utan blå ton, tunna ramar, små radier (6–12 px), rubriker och etiketter i vanlig sans i stället för versal mono, tabellsiffror.
 - Nyckeltalsrad överst på Hem och El: effekt nu, i dag, månaden och pris nu, med trendbricka (effekt och pris mot snittet i dag, förbrukning mot samma klockslag de senaste dygnen). 2×2 på mobil, en rad på dator.

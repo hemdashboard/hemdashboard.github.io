@@ -2,6 +2,9 @@
 //
 // Regel: reglage endast för enheter vars `class` är exakt 'light' eller 'coffeemachine'.
 //   - `virtualClass` räknas inte (ett uttag med lampa som virtuell klass får inget reglage).
+//   - Undantag (beslut 32, förslag): ett uttag (`class` 'socket') som i Homey markerats som
+//     kaffebryggare (`virtualClass` 'coffeemachine') räknas som coffeemachine, endast 'onoff'.
+//     En kaffebryggare bakom en smart plugg; markeringen görs av ägaren i Homey-appen.
 //   - Saknad, okänd eller annan klass = inget reglage. Uttag (socket) är alltid läsande.
 //   - Otillgänglig enhet (available === false) = inget reglage.
 //   - light: capabilities 'onoff' och 'dim'. coffeemachine: endast 'onoff'.
@@ -32,9 +35,16 @@ function capObj(device, cap) {
   return o && typeof o === 'object' && o[cap] && typeof o[cap] === 'object' ? o[cap] : null;
 }
 
-function rule(device) {
+// Effektiv klass för regeln: `class`, utom uttag markerade som kaffebryggare (se ovan).
+export function controlClass(device) {
   if (!device || typeof device !== 'object' || typeof device.class !== 'string') return null;
-  return Object.prototype.hasOwnProperty.call(CONTROL_RULES, device.class) ? CONTROL_RULES[device.class] : null;
+  if (device.class === 'socket' && device.virtualClass === 'coffeemachine') return 'coffeemachine';
+  return device.class;
+}
+
+function rule(device) {
+  const c = controlClass(device);
+  return c && Object.prototype.hasOwnProperty.call(CONTROL_RULES, c) ? CONTROL_RULES[c] : null;
 }
 
 // Enheten tillhör en klass som kan få reglage (oavsett tillgänglighet).
@@ -63,6 +73,25 @@ export function canWrite(device, cap) {
 export function hasControls(device) {
   const r = rule(device);
   return Boolean(r) && isAvailable(device) && r.some(c => canWrite(device, c));
+}
+
+// Varför en enhet som ser ut som lampa eller kaffebryggare saknar reglage. Används bara i
+// den anonyma regelkontrollen (inga namn eller ID). null = har reglage eller är inte aktuell.
+export function whyNoControl(device) {
+  if (!device || typeof device !== 'object') return null;
+  const vc = typeof device.virtualClass === 'string' ? device.virtualClass : '';
+  const looks = isControlClass(device) || Object.prototype.hasOwnProperty.call(CONTROL_RULES, vc);
+  if (!looks || hasControls(device)) return null;
+  const cls = `class ${device.class || '?'}${vc ? `/virtualClass ${vc}` : ''}`;
+  if (!isControlClass(device)) return `${cls}: klassen tillåts inte`;
+  if (!isAvailable(device)) return `${cls}: otillgänglig`;
+  const r = rule(device);
+  for (const c of r) {
+    if (!caps(device).includes(c)) continue;
+    const o = capObj(device, c);
+    if (o && o.setable === false) return `${cls}: ${c} ej skrivbar`;
+  }
+  return `${cls}: saknar ${r.join('/')}`;
 }
 
 // Normaliserar värdet för en tillåten capability; null = ogiltigt.

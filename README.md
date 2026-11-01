@@ -5,22 +5,30 @@ Egen PWA som visar husets status och låter hushållet slå av och på enheter v
 **Repot innehåller ingen husdata.** Enheter, zoner och användare hämtas från Homey vid körning. Nycklar, Homey-ID, IP-adresser och positioner anges i webbläsaren och sparas krypterade lokalt – aldrig här.
 
 ## Status
-Version 0.4.0: hela dashboarden – översikt, el, smarta tips, väder och rum, installerbar som app. Testsidan `lab.html` finns kvar för diagnos.
+Version 0.5.0: hela dashboarden – översikt med närvaro och energiflöde vid laddning, el, smarta tips, väder, rum med planritning och rörelse, installerbar som app. Testsidan `lab.html` finns kvar för diagnos.
 
 ## Vyer
 | Vy | Innehåll |
 |---|---|
-| Hem | Översikt: nyckeltal med trendbricka (effekt nu, i dag, månaden, pris nu), smarta tips, väder med närmaste dygnet och insikter (varmvatten, förbrukning mot vanligt, effekttopp, snittpris) |
+| Hem | Översikt: nyckeltal med trendbricka (effekt nu, i dag, månaden, pris nu), energiflöde nät → hus → laddbox när en laddbox laddar, närvaro per person (hemma/borta), snabbreglage för kaffebryggare, smarta tips, väder med närmaste dygnet och insikter (varmvatten, förbrukning mot vanligt, effekttopp, snittpris) |
 | El | Nyckeltal, förbrukning i dag per timme och 7/30 dygn per dygn (Insights) med priset som bakgrund, spotpris i dag och i morgon, tips |
 | Väder | SMHI: nu, närmaste dygnet i klartext (nederbörd, kyla, vind), sol upp/ned, 24 timmar och 6 dygn |
-| Rum | Ett kort per Homey-zon med enheter, grupperade per våning. Knapparna överst väljer vilka rum som visas. Tillverkare inom parentes. Reglage enligt regeln nedan |
+| Rum | Planritning överst (lokal bild med rummen utplacerade: tänt, rörelse, öppet). Ett kort per Homey-zon med enheter, grupperade per våning. Knapparna överst väljer vilka rum som visas. Tillverkare inom parentes. Reglage enligt regeln nedan |
 | Inst. | Elområde, val av elmätare och prisenhet, egna rum, kontroll och diagnos |
 
 ## Reglage
-Reglage finns **endast för enheter med klassen `light` eller `coffeemachine`** (enhetens `class`, inte `virtualClass`) som är tillgängliga: `onoff` och `dim` för `light`, bara `onoff` för `coffeemachine`. Allt annat – uttag, sensorer, termostater, lås och kameror – visas utan reglage. Saknad eller okänd klass ger inget reglage. Regeln ligger i `js/core/controls.js` och prövas både när reglaget ritas och i skrivvägen (`homey.control`), som är appens enda väg att skriva till Homey. Ingen lista eller markering per enhet finns i appen. Fler klasser kräver ett nytt beslut.
+Reglage finns **endast för enheter med klassen `light` eller `coffeemachine`** (enhetens `class`, inte `virtualClass`) som är tillgängliga. Enda undantaget: ett uttag (`class` `socket`) som i Homey markerats som kaffebryggare (`virtualClass` `coffeemachine`) räknas som `coffeemachine` (beslut 32). Regelkontrollen under Inställningar visar, utan namn, varför enheter som ser ut som lampa eller kaffebryggare saknar reglage. `onoff` och `dim` för `light`, bara `onoff` för `coffeemachine`. Allt annat – uttag, sensorer, termostater, lås och kameror – visas utan reglage. Saknad eller okänd klass ger inget reglage. Regeln ligger i `js/core/controls.js` och prövas både när reglaget ritas och i skrivvägen (`homey.control`), som är appens enda väg att skriva till Homey. Ingen lista eller markering per enhet finns i appen. Fler klasser kräver ett nytt beslut.
 
 ## Rum
 Varje Homey-zon med egna enheter blir ett rum automatiskt, i zonträdets ordning. Enheter i rotzonen visas under Övrigt, och tomma zoner döljs. Egna rum kan läggas till under Inställningar (namn, zon, valfritt med underzoner) och ersätter då de zoner de täcker. Egna rum sparas lokalt i webbläsaren. Repot innehåller inga rum, zoner eller namn.
+
+## Närvaro, rörelse och laddning
+- **Närvaro:** enheter med capability `presence` (t.ex. Smart Presence) visas på Hem med initial, hemma/borta och när läget ändrades. Inga profilbilder; namn och läge läses vid körning.
+- **Rörelse:** sensorer med `alarm_motion` får en ikon som lyser vid rörelse nu eller senaste minuten och tid för senaste rörelse (`capabilitiesObj.alarm_motion.lastUpdated`, uppdaterad av realtid).
+- **Energiflöde:** när en laddbox (`evcharger`) laddar visas nät → hus → laddbox. Nät = vald elmätare, laddbox = laddboxens `measure_power`, huset = skillnaden. Endast visning.
+
+## Planritning
+Ritningen är husdata och finns aldrig i repot. Den laddas upp i appen (PNG, JPEG eller WebP), skalas ned till högst 1600 px och sparas i webbläsarens IndexedDB tillsammans med rummens placering i procent. Upp till fyra ritningar (t.ex. per våning). Varje webbläsare har sina egna. Bilden visas inverterad i gråskala för mörkt tema.
 
 ## El och tips
 - **Elmätare:** enheten med `measure_power` och en energimätare väljs automatiskt (en mätare med `accumulatedCost` och `meter_power.imported` först) eller i Inställningar. Valet sparas lokalt.
@@ -40,9 +48,11 @@ Varje Homey-zon med egna enheter blir ett rum automatiskt, i zonträdets ordning
 | `js/core/http.js` | fetch med tidsgräns och generiska felkategorier |
 | `js/core/controls.js` | Reglageregeln: endast klass `light` och `coffeemachine`, i rendering och skrivväg |
 | `js/core/rooms.js` | Automatiska rum per zon, egna rum sparade lokalt |
+| `js/core/activity.js` | Rörelse, närvaro, laddning och energiflöde ur enheterna |
+| `js/core/planstore.js` | Planritningar i IndexedDB, endast lokalt |
 | `js/core/energy.js`, `js/core/prices.js`, `js/core/weather.js`, `js/core/sun.js`, `js/core/devinfo.js` | Rena beräkningar: förbrukning och kostnad, spotpris och tips, SMHI-tolkning och utsikt, sol upp/ned, tillverkare och varmvatten per enhet |
 | `js/core/svg.js` | Egna diagram och väderikoner i SVG |
-| `js/app/` | Vyerna: `main.js` (start, anslutning, navigering, inställningar), `energy.js`, `weather.js`, `roomsview.js`, `insights.js`, `state.js`, `ui.js` |
+| `js/app/` | Vyerna: `main.js` (start, anslutning, navigering, inställningar), `energy.js`, `weather.js`, `roomsview.js`, `plan.js`, `home.js`, `insights.js`, `state.js`, `ui.js` |
 | `js/adapters/homey.js` | Homey Web API, moln och lokalt, realtid |
 | `js/adapters/smhi.js` | SMHI-prognos |
 | `js/adapters/spotpris.js` | Spotpris per elområde (elprisetjustnu.se) |
