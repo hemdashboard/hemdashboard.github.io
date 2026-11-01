@@ -5,15 +5,15 @@ Egen PWA som visar husets status och låter hushållet slå av och på enheter v
 **Repot innehåller ingen husdata.** Enheter, zoner och användare hämtas från Homey vid körning. Nycklar, Homey-ID, IP-adresser och positioner anges i webbläsaren och sparas krypterade lokalt – aldrig här.
 
 ## Status
-Version 0.3.1: hela dashboarden – översikt, el, smarta tips, väder och rum, installerbar som app. Testsidan `lab.html` finns kvar för diagnos.
+Version 0.3.2: hela dashboarden – översikt, el, smarta tips, väder och rum, installerbar som app. Testsidan `lab.html` finns kvar för diagnos.
 
 ## Vyer
 | Vy | Innehåll |
 |---|---|
-| Hem | Kort för el (effekt nu, i dag, månaden, pris nu), smarta tips, väder och rum |
+| Hem | Översikt: el (effekt nu, i dag, månaden, pris nu), smarta tips, väder med närmaste dygnet och insikter (varmvatten, förbrukning mot vanligt, effekttopp, snittpris) |
 | El | Effekt och kostnad, förbrukning i dag per timme och 7/30 dygn per dygn (Insights) med priset som bakgrund, spotpris i dag och i morgon, tips |
 | Väder | SMHI: nu, närmaste dygnet i klartext (nederbörd, kyla, vind), sol upp/ned, 24 timmar och 6 dygn |
-| Rum | Ett kort per Homey-zon med enheter, grupperade per våning, reglage enligt regeln nedan |
+| Rum | Ett kort per Homey-zon med enheter, grupperade per våning. Knapparna överst väljer vilka rum som visas. Tillverkare inom parentes. Reglage enligt regeln nedan |
 | Inst. | Elområde, val av elmätare och prisenhet, egna rum, kontroll och diagnos |
 
 ## Reglage
@@ -24,6 +24,8 @@ Varje Homey-zon med egna enheter blir ett rum automatiskt, i zonträdets ordning
 
 ## El och tips
 - **Elmätare:** enheten med `measure_power` och en energimätare väljs automatiskt (en mätare med `accumulatedCost` och `meter_power.imported` först) eller i Inställningar. Valet sparas lokalt.
+- **Effekt i Insights:** `measure_power`, annars `energy_power` (Tibber Pulse loggar bara den).
+- **Pris i Insights:** prisenhetens `measure_price_total`, annars Tibber-appens applogg per hem (`…_price`), vald på hemmets namn.
 - **Förbrukning:** ur Homey Insights (`homey.insights.readonly`), som skillnader i en räknande mätare. En mätare som nollställs vid midnatt hanteras också.
 - **Kostnad i dag:** mätarens `accumulatedCost` (Tibbers egen beräkning). Månaden: summan av varje dygns högsta `accumulatedCost` ur Insights plus i dag. Saknas den: förbrukning × prisenhetens pris per timme ur Insights.
 - **Spotpris:** elprisetjustnu.se, kvartspriser visade som timmedel, exkl. moms och avgifter. Prisenhetens totalpris i dag ritas som linje i samma skala.
@@ -38,9 +40,9 @@ Varje Homey-zon med egna enheter blir ett rum automatiskt, i zonträdets ordning
 | `js/core/http.js` | fetch med tidsgräns och generiska felkategorier |
 | `js/core/controls.js` | Reglageregeln: endast klass `light` och `coffeemachine`, i rendering och skrivväg |
 | `js/core/rooms.js` | Automatiska rum per zon, egna rum sparade lokalt |
-| `js/core/energy.js`, `js/core/prices.js`, `js/core/weather.js`, `js/core/sun.js` | Rena beräkningar: förbrukning och kostnad, spotpris och tips, SMHI-tolkning och utsikt, sol upp/ned |
+| `js/core/energy.js`, `js/core/prices.js`, `js/core/weather.js`, `js/core/sun.js`, `js/core/devinfo.js` | Rena beräkningar: förbrukning och kostnad, spotpris och tips, SMHI-tolkning och utsikt, sol upp/ned, tillverkare och varmvatten per enhet |
 | `js/core/svg.js` | Egna diagram och väderikoner i SVG |
-| `js/app/` | Vyerna: `main.js` (start, anslutning, navigering, inställningar), `energy.js`, `weather.js`, `roomsview.js`, `state.js`, `ui.js` |
+| `js/app/` | Vyerna: `main.js` (start, anslutning, navigering, inställningar), `energy.js`, `weather.js`, `roomsview.js`, `insights.js`, `state.js`, `ui.js` |
 | `js/adapters/homey.js` | Homey Web API, moln och lokalt, realtid |
 | `js/adapters/smhi.js` | SMHI-prognos |
 | `js/adapters/spotpris.js` | Spotpris per elområde (elprisetjustnu.se) |

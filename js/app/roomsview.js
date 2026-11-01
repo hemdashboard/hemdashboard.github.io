@@ -1,8 +1,8 @@
 // roomsview.js – rum: automatiskt ett rum per Homey-zon med enheter, manuella rum som override.
 // Reglage enligt controls.js (light och coffeemachine); skrivningar går bara via homey.control.
 //
-// Layout (0.3.1): alla rum under varandra, grupperade per överordnad zon (t.ex. våning),
-// med hopplänkar som radbryts överst – ingen sidledsscroll. Vyn byggs om bara när rum
+// Layout: knapparna överst väljer vilka rum som visas (inga valda = alla), rummen som kort
+// under varandra grupperade per överordnad zon (t.ex. våning). Ingen sidledsscroll. Vyn byggs om bara när rum
 // eller enheter tillkommer/försvinner; annars uppdateras värdena på plats, så att
 // realtidshändelser inte flyttar sidan eller avbryter ett reglage som används.
 
@@ -10,6 +10,7 @@ import { state, prefs, setPref, deviceList } from './state.js';
 import { h, num, toast, capVal } from './ui.js';
 import * as rooms from '../core/rooms.js';
 import { hasControls, canWrite, isControlClass } from '../core/controls.js';
+import { brand, hotWater, titledValues } from '../core/devinfo.js';
 
 const pending = new Map(); // id → antal pågående skrivningar
 let rerender = () => {};
@@ -26,10 +27,21 @@ export function roomList() {
   return rooms.allRooms(state.zones, deviceList());
 }
 
+// Valda rum sparas lokalt i den här webbläsaren (inga namn, bara rum-ID från Homey/appen).
+const SEL_KEY = 'hd.rooms.sel.v1';
+function selected() {
+  try {
+    const a = JSON.parse(localStorage.getItem(SEL_KEY) || '[]');
+    return new Set(Array.isArray(a) ? a.filter(x => typeof x === 'string' && x.length <= 80).slice(0, 40) : []);
+  } catch { return new Set(); }
+}
+function saveSelected(set) {
+  try { localStorage.setItem(SEL_KEY, JSON.stringify([...set])); } catch { /* lagring otillgänglig */ }
+}
 export function setActiveRoom(id) { setPref('room', id); }
 
-// Översikten öppnar ett rum: rumsvyn scrollar dit vid nästa ritning.
-export function openRoom(id) { setActiveRoom(id); scrollTarget = id; }
+// Öppnar rumsvyn med bara det rummet valt.
+export function openRoom(id) { saveSelected(new Set([id])); scrollTarget = null; }
 
 function byName(a, b) { return String(a.name || '').localeCompare(String(b.name || ''), 'sv'); }
 
@@ -54,15 +66,27 @@ const READ = [
   ['measure_battery', v => `batteri ${num(v)} %`],
 ];
 
+const KNOWN = new Set(READ.map(([c]) => c));
+
 function readValues(d) {
   const out = [];
+  const hw = hotWater(d);
+  if (hw) out.push(`varmvatten ${num(hw.value, 1)}°`);
   for (const [cap, fmt] of READ) {
     const v = capVal(d, cap);
     if (v === undefined || v === null || (typeof v === 'number' && !Number.isFinite(v))) continue;
     out.push(fmt(v));
     if (out.length === 3) break;
   }
+  if (!out.length) {
+    for (const t of titledValues(d, KNOWN).slice(0, 2)) out.push(`${t.title} ${num(t.value, 1)}${t.units === '°C' ? '°' : t.units ? ` ${t.units}` : ''}`);
+  }
   return out;
+}
+
+function brandEl(d) {
+  const b = brand(d);
+  return b ? h('span.brand', ` (${b})`) : null;
 }
 
 // ---------- Skrivning ----------
@@ -93,7 +117,8 @@ async function write(d, cap, value) {
 
 function controlRow(d0) {
   let d = d0;
-  const name = h('span.dev-name', d.name || '(namnlös)');
+  const nameTxt = h('span');
+  const name = h('span.dev-name', nameTxt, brandEl(d));
   const st = h('span.dev-state');
   const sw = canWrite(d, 'onoff') ? h('button.switch', {
     role: 'switch', 'aria-label': `${d.name || 'Enhet'} på/av`,
@@ -119,7 +144,7 @@ function controlRow(d0) {
     li.dataset.ctl = ctl ? '1' : '0';
     li.dataset.on = ctl && on ? '1' : '0';
     li.classList.toggle('off', !avail);
-    name.textContent = d.name || '(namnlös)';
+    nameTxt.textContent = d.name || '(namnlös)';
     st.textContent = !avail ? 'Otillgänglig' : on ? (typeof dim === 'number' && range ? `${Math.round(dim * 100)} %` : 'På') : 'Av';
     if (sw) { sw.setAttribute('aria-checked', on ? 'true' : 'false'); sw.disabled = !ctl; sw.hidden = !ctl; }
     if (range) {
@@ -132,13 +157,14 @@ function controlRow(d0) {
 }
 
 function readRow(d0) {
-  const name = h('span.ro-name');
+  const nameTxt = h('span');
+  const name = h('span.ro-name', nameTxt, brandEl(d0));
   const val = h('span.ro-val');
   const li = h('li.ro', { dataset: { ctl: '0' } }, name, val);
   function update(d) {
     const off = d.available === false;
     li.classList.toggle('off', off);
-    name.textContent = d.name || '(namnlös)';
+    nameTxt.textContent = d.name || '(namnlös)';
     val.textContent = off ? 'Otillgänglig' : readValues(d).join(' · ') || '–';
   }
   update(d0);
@@ -182,8 +208,9 @@ function signature(rs) {
 
 export function renderRooms(root) {
   const rs = structure();
-  const sig = signature(rs);
-  if (sig !== built.sig || !root.firstChild) build(root, rs, sig);
+  const sel = selected();
+  const sig = `${[...sel].sort().join(',')}\n${signature(rs)}`;
+  if (sig !== built.sig || !root.firstChild) build(root, rs, sig, sel);
   else for (const x of rs) {
     for (const d of x.devs) { const row = built.rows.get(d.id); if (row && !isPending(d.id)) row.update(d); }
     const head = built.heads.get(x.room.id);
@@ -196,21 +223,26 @@ export function renderRooms(root) {
   }
 }
 
-function build(root, rs, sig) {
+function build(root, rs, sig, sel) {
   built = { sig, rows: new Map(), heads: new Map() };
   if (!rs.length) { root.replaceChildren(h('p.note', state.devices.size ? 'Inga rum med enheter.' : 'Hämtar…')); return; }
 
-  const jump = h('nav.jump', { 'aria-label': 'Hoppa till rum' }, ...rs.map(x => h('button.chip', {
-    onclick: () => {
-      setActiveRoom(x.room.id);
-      const el = root.querySelector(`[data-room="${CSS.escape(x.room.id)}"]`);
-      if (el) el.scrollIntoView({ block: 'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
-    },
-  }, x.room.name)));
+  // Valda rum som inte längre finns räknas inte.
+  const valid = new Set([...sel].filter(id => rs.some(x => x.room.id === id)));
+  const toggle = (id) => {
+    const s = selected();
+    if (s.has(id)) s.delete(id); else s.add(id);
+    saveSelected(s);
+    renderRooms(root);
+  };
+  const pick = h('nav.jump', { 'aria-label': 'Välj rum att visa' },
+    h('button.chip.all', { 'aria-pressed': valid.size ? 'false' : 'true', onclick: () => { saveSelected(new Set()); renderRooms(root); } }, 'Alla'),
+    ...rs.map(x => h('button.chip', { 'aria-pressed': valid.has(x.room.id) ? 'true' : 'false', onclick: () => toggle(x.room.id) }, x.room.name)));
 
-  const kids = [jump];
+  const kids = [pick];
+  const shown = valid.size ? rs.filter(x => valid.has(x.room.id)) : rs;
   let group = null, grid = null;
-  for (const x of rs) {
+  for (const x of shown) {
     if (x.group !== group || !grid) {
       group = x.group;
       if (group) kids.push(h('h2.group', group));
@@ -234,19 +266,6 @@ function build(root, rs, sig) {
     grid.append(card);
   }
   root.replaceChildren(...kids);
-}
-
-// Översiktens rumskort: per rum antal på av de styrbara och en temperatur om någon finns.
-export function roomsCardBody(onOpen) {
-  const rs = structure();
-  if (!rs.length) return [h('p.note', state.devices.size ? 'Inga rum med enheter.' : 'Hämtar…')];
-  return [h('ul.roomgrid', ...rs.map(x => {
-    const s = roomSummary(x.devs);
-    return h('li', h('button.room', {
-      dataset: { lit: s.lit ? '1' : '0' },
-      onclick: () => { openRoom(x.room.id); onOpen(); },
-    }, h('span.room-name', x.room.name), h('span.room-meta', s.text)));
-  }))];
 }
 
 // Regelkontroll av alla enheter: varje rad byggs som i rumsvyn (utanför sidan) och

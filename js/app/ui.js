@@ -87,3 +87,13 @@ export function chartWidth() {
   const vw = Math.min(document.documentElement.clientWidth || 360, 1120);
   return Math.max(280, vw - 32 - 34);
 }
+
+// Förklaring bakom en info-knapp (i). Öppet läge minns per nyckel under sessionen,
+// så att en omritning inte stänger den.
+const openInfo = new Set();
+export function info(key, text) {
+  const d = h('details.info', h('summary', { 'aria-label': 'Förklaring', title: 'Förklaring' }, 'i'), h('p', text));
+  if (openInfo.has(key)) d.open = true;
+  d.addEventListener('toggle', () => { if (d.open) openInfo.add(key); else openInfo.delete(key); });
+  return d;
+}

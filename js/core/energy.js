@@ -39,8 +39,10 @@ export function deltas(pts) {
 export function startOfDay(ms) {
   const d = new Date(ms); d.setHours(0, 0, 0, 0); return d.getTime();
 }
+// Hel timme räknat i UTC: entydigt även när klockan ställs tillbaka (02:00 finns två
+// gånger i oktober) och korrekt för tidszoner med hela timmars förskjutning.
 export function startOfHour(ms) {
-  const d = new Date(ms); d.setMinutes(0, 0, 0); return d.getTime();
+  return ms - (((ms % 3600000) + 3600000) % 3600000);
 }
 export function startOfMonth(ms) {
   const d = new Date(ms); d.setDate(1); d.setHours(0, 0, 0, 0); return d.getTime();
@@ -60,7 +62,8 @@ function bucket(ds, keyFn, nextFn, from, to) {
     let s = d.t0;
     while (s < d.t) {
       const k = keyFn(s);
-      const e = Math.min(nextFn(k), d.t);
+      // Spärr: nästa hink måste ligga efter s, annars kan loopen inte gå framåt.
+      const e = Math.min(Math.max(nextFn(k), s + 60000), d.t);
       map.set(k, (map.get(k) || 0) + d.kwh * (e - s) / span);
       s = e;
     }

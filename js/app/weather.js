@@ -3,7 +3,7 @@
 // innan den skickas till SMHI. Den sparas inte – den hämtas per session.
 
 import { state, changed } from './state.js';
-import { h, num, hh, dayLabel, note, chartWidth } from './ui.js';
+import { h, num, hh, dayLabel, note, chartWidth, info } from './ui.js';
 import * as smhi from '../adapters/smhi.js';
 import * as W from '../core/weather.js';
 import { barChart, lineChart, weatherIcon } from '../core/svg.js';
@@ -135,7 +135,7 @@ export function renderWeather(root, now = Date.now()) {
           h('span.d-temp', `${num(d.min)}° / ${num(d.max)}°`),
           h('span.d-more', `${d.wind !== null ? `${num(d.wind)} m/s` : ''}${d.mm >= 0.5 ? ` · ${num(d.mm, d.mm < 10 ? 1 : 0)} mm` : ''}`));
       })),
-      h('p.fine', `Källa: SMHI (${w.api}).`)));
+      info('wx', `Källa: SMHI (${w.api}), uppdateras var 30:e minut. Närmaste dygnet: nederbörd från 0,1 mm/h, minusgrader under −0,5°, frostrisk nattetid till 2°, hårda vindbyar från 14 m/s. Sol upp och ned räknas ut lokalt från Homeys position.`)));
   }
   root.replaceChildren(...kids);
 }

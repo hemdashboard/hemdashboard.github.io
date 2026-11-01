@@ -15,7 +15,7 @@
 //   A3 accumulatedCost är dagens kostnad i kr och nollställs vid midnatt.
 
 import { state, prefs, setPref, deviceList, changed } from './state.js';
-import { h, num, kr, power, hh, hhmm, dayLabel, weekday, capVal, hasCap, note, chartWidth } from './ui.js';
+import { h, num, kr, power, hh, hhmm, dayLabel, weekday, capVal, hasCap, note, chartWidth, info } from './ui.js';
 import { asList } from '../adapters/homey.js';
 import * as spot from '../adapters/spotpris.js';
 import * as E from '../core/energy.js';
@@ -79,8 +79,24 @@ async function logs() {
 function findLog(list, device, cap) {
   if (!device) return null;
   const owner = `homey:device:${device.id}`;
-  return list.find(l => (l.ownerUri === owner || l.uri === owner)
+  return list.find(l => (l.ownerUri === owner || l.uri === owner || String(l.id).startsWith(`${owner}:`))
     && (l.ownerId === cap || l.id === cap || String(l.id).endsWith(`:${cap}`))) || null;
+}
+
+function logOwner(l) {
+  return String(l.ownerUri || l.uri || (String(l.id).match(/^(homey:[a-z]+:[^:]+):/) || [])[1] || '');
+}
+
+// Prisloggen: på prisenheten om den finns, annars Tibber-appens applogg '<hem>_price'
+// (O 1/11: Tibber loggar priset per hem som applogg). Hemmet väljs på titel som innehåller
+// enhetens namn, annars den enda.
+function findPriceLog(list, pd) {
+  const own = findLog(list, pd, 'measure_price_total');
+  if (own) return own;
+  const app = list.filter(l => /^homey:app:com\.tibber/.test(logOwner(l)) && /_price$/.test(String(l.id)) && l.type !== 'boolean');
+  if (!app.length) return null;
+  const name = pd && pd.name ? String(pd.name).toLowerCase() : '';
+  return (name && app.find(l => String(l.title || '').toLowerCase().includes(name))) || (app.length === 1 ? app[0] : null);
 }
 
 async function entries(log, resolution, key, fallback) {
@@ -101,9 +117,10 @@ export async function loadEnergy() {
   const list = await logs();
   const cumCap = findLog(list, m, 'meter_power.imported') ? 'meter_power.imported' : 'meter_power';
   const cumLog = findLog(list, m, cumCap);
-  const powLog = findLog(list, m, 'measure_power');
+  // Effekt: measure_power, annars energy_power (O 1/11: Pulse loggar bara energy_power).
+  const powLog = findLog(list, m, 'measure_power') || findLog(list, m, 'energy_power');
   const costLog = hasCap(m, 'accumulatedCost') ? findLog(list, m, 'accumulatedCost') : null;
-  const priceLog = pd ? findLog(list, pd, 'measure_price_total') : null;
+  const priceLog = findPriceLog(list, pd);
 
   const [cumDay, powDay, cum7, pow7, cum31, pow31, cost31, priceDay] = await Promise.all([
     entries(cumLog, 'today', 'förbrukning i dag', 'last24Hours'),
@@ -244,7 +261,7 @@ export function tipsBody(now = Date.now()) {
     windowLine('Billigaste 5 h', 'laddning', t.w5, now),
     windowLine('Billigaste 3 h', 'tvätt och disk', t.w3, now),
     peaksLine(t.peaks, now),
-    h('p.fine', `Spotpris ${state.spot.zone}, exkl. moms och avgifter. Bygger enbart på pris${state.spot.tomorrow ? '' : '; morgondagens priser publiceras ca 13'}.`),
+    info('tips', `Spotpris ${state.spot.zone}, exkl. moms och avgifter. Billigaste sammanhängande 3 och 5 timmar som börjar inom 24 timmar. Pristoppar: dygnets tre dyraste timmar och timmar minst 50 % över dygnets median. Bygger enbart på pris${state.spot.tomorrow ? '' : '; morgondagens priser publiceras ca 13'}.`),
   ];
 }
 
@@ -320,6 +337,7 @@ function consumptionChart(range, now) {
       svg: barChart(bars, { width: chartWidth(), fmt: v => num(v, 1), labelEvery: 3, now: cur, line: pw.map((x, i) => (i > cur ? null : x.avg)),
         bg: bgp ? bgp.bg : null, bgFmt: v => num(v, 1), label: 'Förbrukning per timme i dag mot pris' }),
       bgSrc: bgp ? bgp.src : null,
+      hasLine: pw.some(x => x.avg !== null),
       sum: `${num(total, 1)} kWh i dag${top ? ` · högsta effekt ${power(top.max)} kl ${hh(top.t)}` : ''}`,
     };
   }
@@ -341,6 +359,7 @@ function consumptionChart(range, now) {
     svg: barChart(bars, { width: chartWidth(), fmt: v => num(v, 0), labelEvery: n === 7 ? 1 : 5, line: pw.map(x => x.max),
       bg: bgp ? bgp.bg : null, bgFmt: v => num(v, 1), label: `Förbrukning per dygn, ${n} dygn, mot pris` }),
     bgSrc: bgp ? bgp.src : null,
+    hasLine: pw.some(x => x.max !== null),
     sum: `${num(days.reduce((s, x) => s + x.kwh, 0), 0)} kWh totalt${avg !== null ? ` · snitt ${num(avg, 1)} kWh per hela dygn` : ''}`,
   };
 }
@@ -390,7 +409,7 @@ export function renderEnergy(root, now = Date.now()) {
         stat('I dag', `${num(f.todayKwh, 1)} kWh`, Number.isFinite(f.todayKr) ? `${kr(f.todayKr)}${f.todayPartial ? ' · ofullständig' : ''}` : null),
         stat('Månaden', `${num(f.monthKwh, 0)} kWh`, monthSub),
         stat('Pris nu', Number.isFinite(f.priceNow) ? num(f.priceNow, 2) : '–', 'kr/kWh totalt')),
-      f.costSrc ? h('p.fine', `Pris nu: Tibber, inkl. skatt och moms. Kostnad: ${f.costSrc}. Förbrukning i dag: ${f.todayKwhSrc}.`) : null));
+      info('elnu', `Pris nu: Tibber, inkl. skatt och moms. Kostnad: ${f.costSrc || 'saknas'}. Förbrukning i dag: ${f.todayKwhSrc || '–'}. Månaden: förbrukning ur Insights${Number.isFinite(f.monthKr) ? ', kostnad = förbrukning per timme × Tibbers pris samma timme' : ''}.`)));
   }
 
   // Tips direkt efter siffrorna (bredvid dem på bred skärm)
@@ -407,7 +426,7 @@ export function renderEnergy(root, now = Date.now()) {
       const c = consumptionChart(p.energyRange, now);
       box.append(c.svg, h('div.legend', h('span.key.bar', 'kWh (vänster)'),
         c.bgSrc ? h('span.key.bg', `kr/kWh (höger): ${c.bgSrc}`) : null,
-        h('span.key.line', p.energyRange === 'day' ? 'medeleffekt' : 'högsta effekt')), h('p.fine', c.sum));
+        c.hasLine ? h('span.key.line', p.energyRange === 'day' ? 'medeleffekt' : 'högsta effekt') : null), h('p.fine', c.sum));
     }
     kids.push(box);
   }
@@ -427,7 +446,7 @@ export function renderEnergy(root, now = Date.now()) {
       h('div.stats',
         td ? stat('I dag', `${num(td.avg, 2)}`, `${num(td.min, 2)}–${num(td.max, 2)} kr/kWh`) : null,
         tm ? stat('I morgon', `${num(tm.avg, 2)}`, `${num(tm.min, 2)}–${num(tm.max, 2)} kr/kWh`) : stat('I morgon', '–', 'publiceras ca 13')),
-      h('p.fine', 'Staplar: spotpris per timme (medel av kvartspriser), exkl. moms och avgifter.'));
+      info('spot', 'Staplar: spotpris per timme (medel av kvartspriser), exkl. moms och avgifter. Linjen: Tibbers totalpris i dag inkl. skatt och moms, i samma skala. Grönt: billigaste 5 timmar. Orange: pristoppar.'));
   }
   kids.push(sbox);
   root.replaceChildren(...kids);

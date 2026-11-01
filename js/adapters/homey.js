@@ -69,8 +69,15 @@ export function createHomey({ key, cloudId, lanIp }) {
     },
 
     insightsLogs: (mode) => get('/insights/log/', mode, 10000),
-    insightsEntries: (log, resolution = 'last24Hours', mode) =>
-      get(`/insights/log/${encodeURIComponent(log.ownerUri)}/${encodeURIComponent(log.id)}/entry/?resolution=${encodeURIComponent(resolution)}`, mode, 10000),
+    // Loggens ägare och id. Antagande (A): ownerUri (eller uri) + id; ett sammansatt id
+    // 'homey:device:<x>:<cap>' delas upp om ägaren saknas.
+    insightsEntries(log, resolution = 'last24Hours', mode) {
+      let owner = log.ownerUri || log.uri || '';
+      let id = String(log.id || '');
+      if (owner && id.startsWith(`${owner}:`)) id = id.slice(owner.length + 1);
+      if (!owner) { const m = id.match(/^(homey:[a-z]+:[^:]+):(.+)$/); if (m) { owner = m[1]; id = m[2]; } }
+      return get(`/insights/log/${encodeURIComponent(owner)}/${encodeURIComponent(id)}/entry/?resolution=${encodeURIComponent(resolution)}`, mode, 10000);
+    },
 
     // Enda skrivvägen. Spärren (controls.js) prövas här, före varje anrop:
     // bara class 'light', tillgänglig, capability onoff/dim, giltigt värde.

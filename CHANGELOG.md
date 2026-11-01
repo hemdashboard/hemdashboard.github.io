@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3.2 – 2026-11-01
+- Rättat: oändlig loop i timfördelningen när 30-dagarsdata korsar omställningen till vintertid (02:00 finns två gånger). `startOfHour` räknar nu i UTC, och loopen har en spärr mot att stå still.
+- Effektlinjen i förbrukningsdiagrammet syntes inte: Pulse loggar effekt som `energy_power`, inte `measure_power` (O 1/11). Båda prövas nu, och förklaringen visas bara när linjen finns.
+- Tibbers pris i Insights är en applogg per hem (`homey:app:com.tibber:…_price`, O 1/11). Den hittas nu (hemmet väljs på namnet), så prisbakgrunden och månadens kostnad fungerar.
+- Hem: rumskortet borttaget och ersatt av Insikter – varmvatten, förbrukning hittills mot vanligt vid samma tid, effekttopp i dag, snittpris i dag mot pris nu.
+- NIBE och andra enheter med egna capabilities (`capability_N`) visar nu värden med titel. Varmvatten (BT7, annars BT6) visas först.
+- Förklaringar (hur något räknas ut, källor) ligger bakom en (i)-knapp i stället för som text under korten.
+- Rum: knapparna överst väljer vilka rum som visas, flera går att välja, Alla visar alla. Valet sparas lokalt.
+- Tillverkaren (appen) visas inom parentes efter enhetsnamnet, t.ex. (Plejd), (Hue), (NIBE).
+- Cache `hd-shell-v0.3.2`.
+
 ## 0.3.1 – 2026-11-01
 - Rumsvyn omgjord: alla rum som kort under varandra, grupperade per våning (överordnad zon), med hopplänkar som radbryts. Ingen sidledsscroll.
 - Rumsvyn byggs bara om när rum eller enheter ändras. Annars uppdateras värdena på plats, så att realtid och pollning inte flyttar sidan eller avbryter ett reglage. Dimmern visas bara när lampan är på.

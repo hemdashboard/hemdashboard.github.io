@@ -1,15 +1,15 @@
 // sw.js – appskal offline. Cachar bara egna statiska filer.
 // Anrop till Homey, SMHI och spotpris går alltid direkt till nätet och cachas aldrig.
 // Höj CACHE vid varje release.
-const CACHE = 'hd-shell-v0.3.1';
+const CACHE = 'hd-shell-v0.3.2';
 const SHELL = [
   './', './index.html', './lab.html', './manifest.webmanifest', './icons/icon.svg',
   './icons/icon-192.png', './icons/icon-512.png', './icons/icon-maskable-512.png',
   './css/tokens.css', './css/lab.css', './css/app.css',
   './js/core/keystore.js', './js/core/http.js', './js/core/controls.js', './js/core/rooms.js',
-  './js/core/energy.js', './js/core/prices.js', './js/core/weather.js', './js/core/svg.js', './js/core/sun.js',
+  './js/core/energy.js', './js/core/prices.js', './js/core/weather.js', './js/core/svg.js', './js/core/sun.js', './js/core/devinfo.js',
   './js/app/main.js', './js/app/state.js', './js/app/ui.js', './js/app/energy.js',
-  './js/app/weather.js', './js/app/roomsview.js',
+  './js/app/weather.js', './js/app/roomsview.js', './js/app/insights.js',
   './js/adapters/homey.js', './js/adapters/smhi.js', './js/adapters/spotpris.js',
   './js/lab/checks.js', './js/lab/main.js',
 ];
