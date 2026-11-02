@@ -3,12 +3,55 @@
 // Band inne: kallt under 19°, lagom 19–23,5°, varmt över 23,5°.
 // Utomhusrum (kopplade till en utomhusyta i planritningen): frost under 5°, annars neutralt.
 // Trend: ändring senaste timmen på minst 0,3° upp eller ned, annars stabil.
+// Givare (0.7.2): kameror räknas inte (deras temperatur är kamerahusets, inte rummets).
+// Ett värde som inte uppdaterats på 3 h räknas som inaktuellt och lämnas utanför snittet.
+
+import { changedAt } from './activity.js';
 
 export const IN_COLD = 19;
 export const IN_WARM = 23.5;
 export const OUT_FROST = 5;
 export const TREND_MIN = 0.3;
 export const HOUR = 3600000;
+export const STALE_MS = 3 * HOUR;
+export const NO_TEMP_CLASSES = new Set(['camera']);
+
+function tempValue(d) {
+  const o = d && d.capabilitiesObj && d.capabilitiesObj.measure_temperature;
+  return o && typeof o === 'object' ? o.value : undefined;
+}
+
+// Givare som kan räknas i ett rums temperatur: tillgänglig, med värde, inte en kamera.
+export function isTempSensor(d) {
+  return Boolean(d) && d.available !== false && !NO_TEMP_CLASSES.has(d.class)
+    && typeof tempValue(d) === 'number' && Number.isFinite(tempValue(d));
+}
+
+// Tidpunkt (ms) för temperaturvärdets senaste uppdatering, eller null om Homey inte anger den.
+export function tempAt(d) { return changedAt(d, 'measure_temperature'); }
+
+// Inaktuellt: senaste uppdatering äldre än STALE_MS. Saknas tiden räknas värdet som aktuellt (A).
+export function isStale(d, now = Date.now()) {
+  const t = tempAt(d);
+  return t !== null && now - t > STALE_MS;
+}
+
+// Rummets temperatur ur dess enheter.
+// Snittet tas av aktuella givare. Finns bara inaktuella används de, men markeras.
+// Trenden räknas bara på aktuella givare. refOf(id) ger referensvärdet en timme bakåt.
+// { temp, tr, stale: antal inaktuella, total, onlyStale, lastAt: senaste uppdatering bland de inaktuella }
+export function roomTemperature(devs, refOf = () => null, now = Date.now()) {
+  const all = (devs || []).filter(isTempSensor);
+  const fresh = all.filter(d => !isStale(d, now));
+  const old = all.filter(d => isStale(d, now));
+  const use = fresh.length ? fresh : old;
+  const vals = use.map(tempValue);
+  const temp = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+  const tr = fresh.length ? trend(fresh.map(d => ({ now: tempValue(d), ref: refOf(d.id) }))) : null;
+  const ts = old.map(tempAt).filter(t => t !== null);
+  return { temp, tr, stale: old.length, total: all.length, onlyStale: !fresh.length && old.length > 0,
+    lastAt: ts.length ? Math.max(...ts) : null };
+}
 
 // 'cold' | 'ok' | 'warm' | 'frost' | null
 export function band(temp, outdoor = false) {

@@ -10,6 +10,7 @@ import { barChart, lineChart, weatherIcon } from '../core/svg.js';
 import { sunTimes } from '../core/sun.js';
 
 let position = null; // { lat, lon } i minnet
+let builtSig = '';    // vad Väder-vyn senast byggdes av (0.7.2)
 
 export async function loadWeather() {
   if (!position && state.homey && state.homey.active) {
@@ -92,8 +93,17 @@ export function weatherCardBody(now = Date.now()) {
   ];
 }
 
+// Väder-vyn byggs bara om när innehållet kan ha ändrats: ny SMHI-hämtning (at), ny timme
+// (timremsan och "nu" flyttas), ny bredd (diagrammen) eller tom vy. Realtidshändelser från
+// Homey ritar annars om hela appen var 250:e ms och nollade remsans sidledsscroll.
+// Vid ombyggnad behålls remsans scrollLeft.
 export function renderWeather(root, now = Date.now()) {
   const w = state.weather;
+  const sig = `${w ? `${w.at}|${w.err || ''}|${w.pts.length}` : '-'}|${Math.floor(now / 3600000)}|${chartWidth()}`;
+  if (sig === builtSig && root.firstChild) return;
+  const prev = root.querySelector('.wx-strip.scroll');
+  const left = prev ? prev.scrollLeft : 0;
+  builtSig = sig;
   const kids = [];
   if (!w) kids.push(h('section.card', h('h2', 'Väder'), note('Hämtar väder…')));
   else if (!w.pts.length) kids.push(h('section.card', h('h2', 'Väder'), note(errText(w), 'fail')));
@@ -138,4 +148,9 @@ export function renderWeather(root, now = Date.now()) {
       info('wx', `Källa: SMHI (${w.api}), uppdateras var 30:e minut. Närmaste dygnet: nederbörd från 0,1 mm/h, minusgrader under −0,5°, frostrisk nattetid till 2°, hårda vindbyar från 14 m/s. Sol upp och ned räknas ut lokalt från Homeys position.`)));
   }
   root.replaceChildren(...kids);
+  const strip = root.querySelector('.wx-strip.scroll');
+  if (strip && left) strip.scrollLeft = left;
 }
+
+// Tvingar fram ombyggnad nästa gång (t.ex. efter frånkoppling, när vyn tömts).
+export function resetWeatherView() { builtSig = ''; }

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.7.2 – 2026-11-02
+- Rummens temperatur räknar inte längre kameror (klass `camera`): kamerahusets temperatur är inte rummets.
+- Givare vars temperatur inte uppdaterats på 3 h lämnas utanför rummets snitt och trend. Brickan i rumskort och planritning får en gul punkt när någon givare lämnats utanför, och blir dämpad och streckad när bara inaktuella värden finns. Titeln anger antal och senaste uppdatering. Enhetsraden visar åldern, t.ex. "21,3° (5 h sedan)".
+- Saknar Homey tiden för senaste uppdatering räknas värdet som aktuellt.
+- Trendens Insights-anrop görs bara för aktuella givare utan kameror. Diagnostiken visar `tempStale` (inaktuella/alla).
+- Väder: timremsan byggs inte om vid realtidshändelser från Homey, bara vid ny SMHI-data, ny timme eller ny bredd, och behåller då sin sidledsscroll.
+- Cache `hd-shell-v0.7.2`.
+
 ## 0.7.1 – 2026-11-01
 - Kamera: igenkänt ansikte räknas som händelsen Person (bara tiden; namnet lagras och visas aldrig). Rättar att en kamera kunde visa en äldre händelse när den senaste var ett igenkänt ansikte (H1, ej verifierat).
 - Informationstexten säger att tiderna kommer från Homey och kan ligga upp till en minut efter kamerans egen tid.

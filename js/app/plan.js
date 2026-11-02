@@ -11,7 +11,7 @@ import { el } from '../core/svg.js';
 import * as rooms from '../core/rooms.js';
 import { FLOORS, autoMap, points, rooms as planAreas } from '../core/floorplan.js';
 import { motion } from '../core/activity.js';
-import { roomList, openRoom, roomTemp, tempText, TEMP_ICO_PATHS, ARROWS } from './roomsview.js';
+import { roomList, openRoom, roomTemp, tempText, staleKind, TEMP_ICO_PATHS, ARROWS } from './roomsview.js';
 import { band } from '../core/temperature.js';
 
 const MAP_KEY = 'hd.plan.map.v1';
@@ -116,13 +116,15 @@ function tempBadge(cx, cy, maxW) {
   const val = el('text', { class: 'fp-temp-val', y: cy + TB.dy });
   const arrows = { up: icon(ARROWS.up, 'fp-tr up'), down: icon(ARROWS.down, 'fp-tr down'), flat: icon(ARROWS.flat, 'fp-tr flat') };
   const title = el('title');
-  g.append(title, rect, ico, val, arrows.up, arrows.down, arrows.flat);
+  const dot = el('circle', { class: 'fp-stale-dot', r: 5 * K });
+  g.append(title, rect, ico, val, arrows.up, arrows.down, arrows.flat, dot);
   function update(t, outdoor) {
     if (t.temp === null) { g.setAttribute('data-show', '0'); return; }
     g.setAttribute('data-show', '1');
     g.setAttribute('data-band', band(t.temp, outdoor) || 'ok');
     const dir = t.tr ? t.tr.dir : 'none';
     g.setAttribute('data-dir', dir);
+    g.setAttribute('data-stale', staleKind(t));
     val.textContent = `${num(t.temp, 1)}°`;
     title.textContent = tempText(t).short;
     const tw = val.textContent.length * TB.ch;
@@ -134,6 +136,7 @@ function tempBadge(cx, cy, maxW) {
     val.setAttribute('x', x0 + TB.pad + TB.ico + TB.gap);
     const ax = x0 + TB.pad + TB.ico + TB.gap + tw + TB.gap;
     for (const a of Object.values(arrows)) a.setAttribute('transform', `translate(${ax} ${cy - TB.arrow / 2}) scale(${TB.arrow / 24})`);
+    dot.setAttribute('cx', x0 + w - TB.rx * 0.6); dot.setAttribute('cy', cy - TB.h / 2 + TB.rx * 0.6); // övre högra hörnet
     const fit = maxW > 0 && w > maxW ? maxW / w : 1;
     if (fit < 1) g.setAttribute('transform', `translate(${cx} ${cy}) scale(${fit.toFixed(3)}) translate(${-cx} ${-cy})`);
     else g.removeAttribute('transform');

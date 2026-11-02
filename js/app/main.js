@@ -18,7 +18,7 @@ import * as plan from './plan.js';
 import * as temps from './temps.js';
 import * as security from './security.js';
 
-export const APP_VERSION = '0.7.1';
+export const APP_VERSION = '0.7.2';
 
 // Ramspärr: meta-CSP kan inte sätta frame-ancestors. I en ram körs sidan aldrig.
 if (window.top !== window.self) {
@@ -402,6 +402,7 @@ function teardown() {
   energy.resetLogs();
   temps.reset();
   weather.forgetPosition();
+  weather.resetWeatherView();
   for (const id of ['ovKpi', 'ovFlow', 'ovPresence', 'ovQuick', 'ovTips', 'ovWx', 'ovIns', 'energyRoot', 'weatherRoot', 'planRoot', 'roomsRoot', 'ovSec', 'camerasRoot']) $(id).replaceChildren();
   setLive('off');
 }

@@ -13,7 +13,7 @@ import { hasControls, canWrite, isControlClass, controlClass, whyNoControl } fro
 import { motion, ago } from '../core/activity.js';
 import * as fav from '../core/favorites.js';
 import { brand, hotWater, titledValues } from '../core/devinfo.js';
-import { band, trend } from '../core/temperature.js';
+import { band, roomTemperature, isStale, tempAt } from '../core/temperature.js';
 import { refOf } from './temps.js';
 
 const pending = new Map(); // id → antal pågående skrivningar
@@ -82,7 +82,9 @@ function readValues(d) {
   for (const [cap, fmt] of READ) {
     const v = capVal(d, cap);
     if (v === undefined || v === null || (typeof v === 'number' && !Number.isFinite(v))) continue;
-    out.push(fmt(v));
+    // Inaktuell temperatur (äldre än 3 h) får sin ålder, t.ex. "21,3° (5 h)".
+    if (cap === 'measure_temperature' && isStale(d)) { out.push(`${fmt(v)} (${ago(tempAt(d))})`); }
+    else out.push(fmt(v));
     if (out.length === 3) break;
   }
   if (!out.length) {
@@ -226,14 +228,16 @@ function groupOf(room) {
   return p && p.parent ? p.name || '' : '';
 }
 
-// Rummets temperatur (medel av tillgängliga sensorer) och trend senaste timmen.
-// Delas med planritningen. { temp: tal | null, tr: { delta, dir } | null }
-export function roomTemp(devs) {
-  const sens = devs.filter(d => d.available !== false && Number.isFinite(capVal(d, 'measure_temperature')));
-  const temps = sens.map(d => capVal(d, 'measure_temperature'));
-  const temp = temps.length ? temps.reduce((a, b) => a + b, 0) / temps.length : null;
-  const tr = trend(sens.map(d => ({ now: capVal(d, 'measure_temperature'), ref: refOf(d.id) })));
-  return { temp, tr };
+// Rummets temperatur och trend senaste timmen, utan kameror och utan givare äldre än 3 h
+// (se core/temperature.js). Delas med planritningen.
+// { temp, tr, stale, total, onlyStale, lastAt }
+export function roomTemp(devs, now = Date.now()) {
+  return roomTemperature(devs, refOf, now);
+}
+
+// 'none' | 'some' (någon givare utanför snittet) | 'all' (bara inaktuella värden)
+export function staleKind(t) {
+  return !t || !t.stale ? 'none' : t.onlyStale ? 'all' : 'some';
 }
 
 // Text för temperaturbrickans titel och skärmläsare, t.ex. "21,4° · stiger +0,6° senaste timmen".
@@ -242,15 +246,19 @@ export function tempText(t) {
   const sign = t.tr && t.tr.delta > 0 ? '+' : t.tr && t.tr.delta < 0 ? '−' : '±';
   const how = !t.tr ? 'trend saknas'
     : `${dir === 'up' ? 'stiger' : dir === 'down' ? 'sjunker' : 'stabil'} ${sign}${num(Math.abs(t.tr.delta), 1)}° senaste timmen`;
-  return { short: `${num(t.temp, 1)}° · ${how}`, label: `${num(t.temp, 1)} grader, ${how}` };
+  const k = staleKind(t);
+  const last = t.lastAt ? `, senast ${ago(t.lastAt)}` : '';
+  const st = k === 'all' ? ` · inaktuellt (ingen givare uppdaterad på 3 h${last})`
+    : k === 'some' ? ` · ${t.stale} av ${t.total} givare utanför snittet (inte uppdaterad på 3 h${last})` : '';
+  return { short: `${num(t.temp, 1)}° · ${how}${st}`, label: `${num(t.temp, 1)} grader, ${how}${st}` };
 }
 
 function roomSummary(devs) {
   const ctl = devs.filter(d => hasControls(d));
   const lit = ctl.filter(d => capVal(d, 'onoff') === true).length;
-  const { temp, tr } = roomTemp(devs);
+  const t = roomTemp(devs);
   const off = devs.filter(d => d.available === false).length;
-  return { ctl: ctl.length, lit, temp, tr, off,
+  return { ctl: ctl.length, lit, ...t, off,
     text: `${ctl.length ? `${lit}/${ctl.length} på` : `${devs.length} enh.`}${off ? ` · ${off} otillg.` : ''}` };
 }
 
@@ -270,7 +278,7 @@ function svgPaths(cls, ds) {
 }
 function tempChip() {
   const val = h('span.val');
-  const el = h('span.temp', { hidden: true, role: 'img' }, svgPaths('ico', TEMP_ICO), val,
+  const el = h('span.temp', { hidden: true, role: 'img' }, svgPaths('ico', TEMP_ICO), val, h('span.stale-dot'),
     svgPaths('tr up', ARROWS.up), svgPaths('tr down', ARROWS.down), svgPaths('tr flat', ARROWS.flat));
   function update(s, outdoor) {
     if (s.temp === null) { el.hidden = true; return; }
@@ -278,6 +286,7 @@ function tempChip() {
     el.dataset.band = band(s.temp, outdoor) || 'ok';
     val.textContent = `${num(s.temp, 1)}°`;
     el.dataset.dir = s.tr ? s.tr.dir : 'none';
+    el.dataset.stale = staleKind(s);
     const tt = tempText(s);
     el.setAttribute('title', tt.short);
     el.setAttribute('aria-label', tt.label);

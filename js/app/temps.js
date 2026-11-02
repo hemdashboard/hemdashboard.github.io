@@ -4,12 +4,12 @@
 // reservanrop med längre fönster när timmen har färre än två punkter. Hämtas när rumsvyn
 // visas och därefter högst var tionde minut. Nuvärdet tas ur enhetsdatan (realtid), så att
 // pilen följer med utan nya Insights-anrop. Endast läsning (homey.insights.readonly).
+// Kameror och inaktuella givare (äldre än 3 h) hämtas inte: de räknas inte i trenden.
 
 import { state, deviceList } from './state.js';
-import { capVal } from './ui.js';
 import { insightLogList, findLog } from './energy.js';
 import * as E from '../core/energy.js';
-import { reference } from '../core/temperature.js';
+import { reference, isTempSensor, isStale } from '../core/temperature.js';
 
 const TTL = 10 * 60000;
 const PARALLEL = 4;
@@ -18,8 +18,8 @@ const refs = new Map(); // enhets-id → referensvärde en timme bakåt (eller n
 let at = 0;
 let busy = false;
 
-function sensors() {
-  return deviceList().filter(d => d.available !== false && Number.isFinite(capVal(d, 'measure_temperature')));
+function sensors(now = Date.now()) {
+  return deviceList().filter(d => isTempSensor(d) && !isStale(d, now));
 }
 
 async function one(list, d, now) {
@@ -41,7 +41,9 @@ export async function maybeLoad(onDone) {
     const list = await insightLogList();
     if (!list.length) { state.diag.tempTrend = 'saknas'; at = Date.now(); return; }
     const now = Date.now();
-    const devs = sensors();
+    const devs = sensors(now);
+    const all = deviceList().filter(isTempSensor);
+    state.diag.tempStale = `${all.filter(d => isStale(d, now)).length}/${all.length}`;
     const next = new Map();
     let ok = 0;
     for (let i = 0; i < devs.length; i += PARALLEL) {
