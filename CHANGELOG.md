@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.7.3 – 2026-11-02
+- Planritningens informationsruta (i) förklarar temperaturbrickan: färger, pil, gul prick och streckad bricka.
+- Cache `hd-shell-v0.7.3`.
+
 ## 0.7.2 – 2026-11-02
 - Rummens temperatur räknar inte längre kameror (klass `camera`): kamerahusets temperatur är inte rummets.
 - Givare vars temperatur inte uppdaterats på 3 h lämnas utanför rummets snitt och trend. Brickan i rumskort och planritning får en gul punkt när någon givare lämnats utanför, och blir dämpad och streckad när bara inaktuella värden finns. Titeln anger antal och senaste uppdatering. Enhetsraden visar åldern, t.ex. "21,3° (5 h sedan)".

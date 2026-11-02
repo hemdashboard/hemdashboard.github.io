@@ -214,7 +214,7 @@ function build(root, list, map, sig) {
   const head = h('div.card-head', h('h2', 'Planritning'),
     h('div.plan-tools', h('button.ghostbtn', { 'aria-pressed': edit ? 'true' : 'false', onclick: () => { edit = !edit; pickArea = ''; rerender(); } }, edit ? 'Klar' : 'Koppla rum')));
   const kids = [head,
-    info('plan', 'Fylld yta = lampa tänd, blå kant = rörelse senaste minuten, gul kant = dörr eller fönster öppet. Tryck på ett rum för att öppna det. Ritningen är schematisk; kopplingen till Homeys rum sparas bara i den här webbläsaren.')];
+    info('plan', 'Fylld yta = lampa tänd, blå kant = rörelse senaste minuten, gul kant = dörr eller fönster öppet. Tryck på ett rum för att öppna det. Ritningen är schematisk; kopplingen till Homeys rum sparas bara i den här webbläsaren. Temperaturbrickan (här och i rumskorten): snitt av rummets givare, kameror räknas inte. Blå siffra = under 19° (ute under 5°), gul = över 23,5°, pilen = ändring på minst 0,3° senaste timmen. Gul prick = minst en givare har inte uppdaterats på 3 h och är utanför snittet. Streckad och grå bricka = ingen givare har uppdaterats på 3 h, så värdet är gammalt. Givarens rad i rumskortet visar hur gammalt värdet är.')];
 
   kids.push(h('div.fp-floors', ...FLOORS.map(f => floorSvg(f, list, map))));
 
