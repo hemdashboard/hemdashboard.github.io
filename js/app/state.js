@@ -15,7 +15,7 @@ export const state = {
 };
 
 const PREF_KEY = 'hd.prefs.v1';
-const DEFAULTS = Object.freeze({ zone: 'SE3', meterId: '', priceId: '', room: '', energyRange: 'day' });
+const DEFAULTS = Object.freeze({ zone: 'SE3', meterId: '', priceId: '', room: '', energyRange: 'day', kpiUnit: 'kwh' });
 
 export function prefs() {
   try {

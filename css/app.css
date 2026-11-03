@@ -363,6 +363,12 @@ button.kpi:hover, button.kpi:focus-visible { border-color: var(--surface-2-edge)
 .kpi-foot { display: flex; justify-content: space-between; align-items: center; gap: 6px; min-height: 22px; }
 .kpi-sub { font-size: var(--fs-xs); color: var(--text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .kpi-empty { grid-column: 1 / -1; }
+/* Växlingsbara nyckeltal (I dag, Månaden): enhetsbricka uppe till höger */
+.kpi-toggle .kpi-label { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+.kpi-unit { display: inline-flex; align-items: center; gap: 4px; padding: 1px 6px; border-radius: var(--r-sm);
+  border: 1px solid var(--surface-2-edge); color: var(--text-2); font-variant-numeric: tabular-nums; }
+.kpi-toggle[data-unit="kr"] .kpi-unit { color: var(--accent); border-color: currentColor; }
+.kpi-swap { opacity: .7; }
 .badge { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 3px; padding: 2px 6px; border-radius: var(--r-sm);
          font-size: 0.6875rem; font-weight: 600; font-variant-numeric: tabular-nums; }
 .badge[data-tone="bad"]  { color: var(--bad);  background: #EF6F6C1F; }

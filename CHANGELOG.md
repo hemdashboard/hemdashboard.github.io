@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.5 – 2026-11-03
+- Nyckeltalen I dag och Månaden växlar mellan förbrukning (kWh) och kostnad (kr) vid tryck, på Hem och i El. Valet gäller båda korten och sparas lokalt i webbläsaren. Det andra värdet står kvar på raden under.
+- Enhetsbrickan uppe till höger visar aktuellt läge (kWh, eller kr i mint).
+- I kr-läge döljs trendbrickan (den jämför förbrukning) och kostnaden markeras ≈ när pris saknas för en del av förbrukningen eller dagar saknas i månaden.
+- Effekt nu och Pris nu öppnar El som tidigare.
+- Cache `hd-shell-v0.7.5`.
+
 ## 0.7.4 – 2026-11-03
 - SMHI: reserven pmp3g borttagen (stängd sedan 2026-03-31) med tillhörande tolkning. Ett anrop per hämtning, bara snow1g (fynd 75).
 - Svarar inte SMHI visas senaste lyckade prognos med tid, t.ex. "uppdaterad 14:05", i stället för tomt läge. Nytt försök efter 5 minuter. Prognosen hålls bara i minnet och visas så länge den täcker framåt i tiden.

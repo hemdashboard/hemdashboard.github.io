@@ -227,15 +227,42 @@ function kpi(label, value, sub, b, onOpen) {
     h('span.kpi-foot', h('span.kpi-sub', sub || ''), b));
 }
 
+// Växlingsbart nyckeltal (I dag, Månaden): tryck växlar båda mellan kWh och kr.
+// Valet är gemensamt för korten och sparas lokalt i webbläsaren (prefs.kpiUnit).
+function kpiSwap(label, unit, kwhVal, krVal, b, onOpen) {
+  const isKr = unit === 'kr';
+  return h('button.kpi.kpi-toggle', {
+    type: 'button',
+    dataset: { unit },
+    'aria-label': `${label}: ${isKr ? krVal : kwhVal}. Tryck för att visa ${isKr ? 'förbrukning' : 'kostnad'}.`,
+    onclick: e => {
+      setPref('kpiUnit', isKr ? 'kwh' : 'kr');
+      const grid = e.currentTarget.parentNode;
+      const idx = [...grid.children].indexOf(e.currentTarget);
+      grid.replaceChildren(...kpiTiles(onOpen));
+      const next = grid.children[idx];
+      if (next && e.detail === 0) next.focus(); // tangentbord: behåll fokus
+    },
+  },
+  h('span.kpi-label', label, h('span.kpi-unit', { 'aria-hidden': 'true' }, isKr ? 'kr' : 'kWh', h('span.kpi-swap', '⇄'))),
+  h('span.kpi-val', isKr ? krVal : kwhVal),
+  h('span.kpi-foot', h('span.kpi-sub', isKr ? kwhVal : krVal), isKr ? null : b));
+}
+
 export function kpiTiles(onOpen, now = Date.now()) {
   const f = figures(now);
   if (!f.meter) return [h('div.card.kpi-empty', note(state.devices.size ? 'Ingen elmätare hittad. Välj i Inställningar.' : 'Hämtar…'))];
+  const unit = prefs().kpiUnit === 'kr' ? 'kr' : 'kwh';
+  // ≈ när kostnaden bara delvis har pris eller dagar saknas i månaden
+  const todayKr = Number.isFinite(f.todayKr) ? `${f.todayPartial ? '≈ ' : ''}${kr(f.todayKr)}` : '–';
+  const monthApprox = f.monthPartial || (Number.isFinite(f.monthDays) && f.monthDays < f.monthDaysExpected);
+  const monthKr = Number.isFinite(f.monthKr) ? `${monthApprox ? '≈ ' : ''}${kr(f.monthKr)}` : '–';
   return [
     kpi('Effekt nu', power(f.powerNow), Number.isFinite(f.powerAvgToday) ? `snitt ${power(f.powerAvgToday)}` : 'snitt –',
       badge(pct(f.powerNow, f.powerAvgToday)), onOpen),
-    kpi('I dag', `${num(f.todayKwh, 1)} kWh`, Number.isFinite(f.todayKr) ? kr(f.todayKr) : '–',
+    kpiSwap('I dag', unit, `${num(f.todayKwh, 1)} kWh`, todayKr,
       badge(pct(f.todayKwh, f.usualKwh)), onOpen),
-    kpi('Månaden', `${num(f.monthKwh, 0)} kWh`, Number.isFinite(f.monthKr) ? kr(f.monthKr) : '–', null, onOpen),
+    kpiSwap('Månaden', unit, `${num(f.monthKwh, 0)} kWh`, monthKr, null, onOpen),
     kpi('Pris nu', Number.isFinite(f.priceNow) ? `${num(f.priceNow, 2)} kr` : '–',
       Number.isFinite(f.priceAvgToday) ? `snitt ${num(f.priceAvgToday, 2)}` : 'per kWh', badge(pct(f.priceNow, f.priceAvgToday)), onOpen),
   ];
@@ -444,7 +471,7 @@ export function renderEnergy(root, now = Date.now()) {
   // Förbrukning
   const en = state.energy;
   if (f.meter) {
-    const box = h('section.card', info('elnu', `Pris: Tibber, inkl. skatt och moms. Kostnad i dag: ${f.costSrc || 'saknas'}. Förbrukning i dag: ${f.todayKwhSrc || '–'}. Månaden: förbrukning ur Insights, kostnad = förbrukning per timme × Tibbers pris samma timme. Trendbrickorna jämför med snittet i dag (effekt, pris) och med samma klockslag de senaste dygnen (i dag).`),
+    const box = h('section.card', info('elnu', `Pris: Tibber, inkl. skatt och moms. Kostnad i dag: ${f.costSrc || 'saknas'}. Förbrukning i dag: ${f.todayKwhSrc || '–'}. Månaden: förbrukning ur Insights, kostnad = förbrukning per timme × Tibbers pris samma timme. Trendbrickorna jämför med snittet i dag (effekt, pris) och med samma klockslag de senaste dygnen (i dag). Tryck på I dag eller Månaden för att växla mellan kWh och kr; ≈ betyder att pris saknas för en del av förbrukningen.`),
       h('div.card-head', h('h2', 'Förbrukning'),
       rangeButtons(p.energyRange, (k) => { setPref('energyRange', k); renderEnergy(root); })));
     if (!en) box.append(note('Hämtar Insights…'));
