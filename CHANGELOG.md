@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.4 – 2026-11-03
+- SMHI: reserven pmp3g borttagen (stängd sedan 2026-03-31) med tillhörande tolkning. Ett anrop per hämtning, bara snow1g (fynd 75).
+- Svarar inte SMHI visas senaste lyckade prognos med tid, t.ex. "uppdaterad 14:05", i stället för tomt läge. Nytt försök efter 5 minuter. Prognosen hålls bara i minnet och visas så länge den täcker framåt i tiden.
+- Informationsrutan i Väder anger tiden för senaste prognos.
+- CSP oförändrad: snow1g ligger på samma host.
+- Cache `hd-shell-v0.7.4`.
+
 ## 0.7.3 – 2026-11-02
 - Planritningens informationsruta (i) förklarar temperaturbrickan: färger, pil, gul prick och streckad bricka.
 - Cache `hd-shell-v0.7.3`.

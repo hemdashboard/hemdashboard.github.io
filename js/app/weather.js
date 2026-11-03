@@ -24,14 +24,43 @@ export async function loadWeather() {
     return;
   }
   const f = await smhi.forecast(position.lat, position.lon);
-  state.diag.smhi = f.ok ? `ok (${f.api})` : f.err;
-  state.weather = f.ok ? { pts: W.parse(f.data), api: f.api, at: Date.now() } : { pts: [], err: f.err, at: Date.now() };
+  const now = Date.now();
+  const pts = f.ok ? W.parse(f.data) : [];
+  if (f.ok && pts.length) {
+    state.diag.smhi = `ok (${f.api})`;
+    state.weather = { pts, api: f.api, at: now, okAt: now };
+  } else {
+    // Fel: behåll senaste lyckade prognos (bara i minnet) och visa dess ålder.
+    const err = f.ok ? 'tom prognos' : f.err;
+    const prev = state.weather;
+    state.diag.smhi = prev && prev.okAt ? `${err} (visar ${hm(prev.okAt)})` : err;
+    state.weather = prev && prev.okAt
+      ? { pts: prev.pts, api: prev.api, at: now, okAt: prev.okAt, err }
+      : { pts: [], err, at: now };
+  }
   changed('weather');
 }
 
+// Lyckad hämtning: var 30:e minut. Fel (med eller utan äldre prognos): nytt försök efter 5 min.
 export function weatherNeedsReload(now = Date.now()) {
   const w = state.weather;
   return !w || now - w.at > (w.err ? 5 : 30) * 60000;
+}
+
+// Gammal prognos som fortfarande täcker framåt i tiden. Annars räknas den som borta.
+function usable(w, now) {
+  return !!w && w.pts.length > 0 && w.pts[w.pts.length - 1].t > now;
+}
+
+// "uppdaterad 14:05", "uppdaterad i går 14:05" eller "uppdaterad tis 3/11 14:05".
+function updatedText(ms, now) {
+  const day = dayLabel(ms, now);
+  return `uppdaterad ${day === 'i dag' ? '' : `${day} `}${hm(ms)}`;
+}
+
+// Rad som visas när SMHI inte svarar och en äldre prognos visas.
+function staleNote(w, now) {
+  return w.err ? note(`SMHI svarar inte – visar prognos ${updatedText(w.okAt, now)}.`, 'warn') : null;
 }
 
 export function forgetPosition() { position = null; }
@@ -77,11 +106,12 @@ function errText(w) {
 export function weatherCardBody(now = Date.now()) {
   const w = state.weather;
   if (!w) return [note('Hämtar väder…')];
-  if (!w.pts.length) return [note(errText(w), 'fail')];
+  if (!usable(w, now)) return [note(errText(w), 'fail')];
   const c = W.current(w.pts, now);
   const s = W.symbol(c.sym);
   const next = W.nextHours(w.pts, now, 8).filter(p => p.t > now).filter((_, i) => i % 2 === 0).slice(0, 4);
   return [
+    staleNote(w, now),
     h('div.wx-now',
       weatherIcon(s.kind, nightAt(c.t), 44),
       h('div', h('div.big', `${num(c.temp, 1)}°`), h('div.stat-sub', `${s.text} · ${wind(c)}`))),
@@ -90,7 +120,7 @@ export function weatherCardBody(now = Date.now()) {
     h('div.wx-strip', ...next.map(p => h('div.wx-mini',
       h('div.stat-label', hh(p.t)), weatherIcon(W.symbol(p.sym).kind, nightAt(p.t), 22), h('div.stat-sub', `${num(p.temp)}°`)))),
     sunLine(now) ? h('p.fine', sunLine(now)) : null,
-  ];
+  ].filter(Boolean); // replaceChildren skulle annars skriva ut "null"
 }
 
 // Väder-vyn byggs bara om när innehållet kan ha ändrats: ny SMHI-hämtning (at), ny timme
@@ -106,12 +136,13 @@ export function renderWeather(root, now = Date.now()) {
   builtSig = sig;
   const kids = [];
   if (!w) kids.push(h('section.card', h('h2', 'Väder'), note('Hämtar väder…')));
-  else if (!w.pts.length) kids.push(h('section.card', h('h2', 'Väder'), note(errText(w), 'fail')));
+  else if (!usable(w, now)) kids.push(h('section.card', h('h2', 'Väder'), note(errText(w), 'fail')));
   else {
     const c = W.current(w.pts, now);
     const s = W.symbol(c.sym);
     kids.push(h('section.card',
       h('h2', 'Väder nu'),
+      staleNote(w, now),
       h('div.wx-now',
         weatherIcon(s.kind, nightAt(c.t), 56),
         h('div', h('div.big', `${num(c.temp, 1)}°`), h('div.stat-sub', s.text))),
@@ -145,7 +176,7 @@ export function renderWeather(root, now = Date.now()) {
           h('span.d-temp', `${num(d.min)}° / ${num(d.max)}°`),
           h('span.d-more', `${d.wind !== null ? `${num(d.wind)} m/s` : ''}${d.mm >= 0.5 ? ` · ${num(d.mm, d.mm < 10 ? 1 : 0)} mm` : ''}`));
       })),
-      info('wx', `Källa: SMHI (${w.api}), uppdateras var 30:e minut. Närmaste dygnet: nederbörd från 0,1 mm/h, minusgrader under −0,5°, frostrisk nattetid till 2°, hårda vindbyar från 14 m/s. Sol upp och ned räknas ut lokalt från Homeys position.`)));
+      info('wx', `Källa: SMHI (${w.api}), ${updatedText(w.okAt, now)}, hämtas var 30:e minut. Svarar inte SMHI visas senaste prognosen med sin tid och ett nytt försök görs efter 5 minuter. Närmaste dygnet: nederbörd från 0,1 mm/h, minusgrader under −0,5°, frostrisk nattetid till 2°, hårda vindbyar från 14 m/s. Sol upp och ned räknas ut lokalt från Homeys position.`)));
   }
   root.replaceChildren(...kids);
   const strip = root.querySelector('.wx-strip.scroll');

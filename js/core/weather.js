@@ -1,48 +1,38 @@
 // weather.js – tolkar SMHI:s punktprognos till en enhetlig form. Inga nätanrop.
 //
-// Två format stöds (antagande A, båda prövas):
-//   snow1g: timeSeries[] = { time, data: { air_temperature, wind_speed, wind_speed_of_gust,
-//           precipitation_amount_mean, symbol_code, … } }
-//   pmp3g:  timeSeries[] = { validTime, parameters: [{ name, values: [v] }] } med t, ws, gust,
-//           pmean, Wsymb2
+// Format snow1g: timeSeries[] = { time, data: { air_temperature, wind_speed,
+//   wind_speed_of_gust, precipitation_amount_mean, symbol_code, … } }
 // Nederbörd anges som medelintensitet (mm/h); summor räknas som intensitet × steg.
 //
 // Punkt: { t, temp, wind, gust, rain (mm/h), sym (1–27) }
 
 function num(v) {
-  const n = Number(Array.isArray(v) ? v[0] : v);
-  return Number.isFinite(n) && n > -9000 ? n : null;
+  const n = Number(v);
+  return v !== null && v !== '' && Number.isFinite(n) && n > -9000 ? n : null;
 }
 
 export function parse(data) {
   const ts = data && Array.isArray(data.timeSeries) ? data.timeSeries : [];
   const out = [];
   for (const s of ts) {
-    if (!s) continue;
-    const t = Date.parse(s.time || s.validTime);
+    if (!s || !s.data || typeof s.data !== 'object') continue;
+    const t = Date.parse(s.time);
     if (!Number.isFinite(t)) continue;
-    let g;
-    if (s.data && typeof s.data === 'object') {
-      const d = s.data;
-      g = (...keys) => { for (const k of keys) if (k in d) return num(d[k]); return null; };
-    } else if (Array.isArray(s.parameters)) {
-      const m = new Map(s.parameters.filter(p => p && p.name).map(p => [p.name, p.values]));
-      g = (...keys) => { for (const k of keys) if (m.has(k)) return num(m.get(k)); return null; };
-    } else continue;
+    const d = s.data;
     out.push({
       t,
-      temp: g('air_temperature', 't'),
-      wind: g('wind_speed', 'ws'),
-      gust: g('wind_speed_of_gust', 'gust'),
-      rain: g('precipitation_amount_mean', 'pmean'),
-      sym: g('symbol_code', 'Wsymb2'),
+      temp: num(d.air_temperature),
+      wind: num(d.wind_speed),
+      gust: num(d.wind_speed_of_gust),
+      rain: num(d.precipitation_amount_mean),
+      sym: num(d.symbol_code),
     });
   }
   out.sort((a, b) => a.t - b.t);
   return out;
 }
 
-// Wsymb2 1–27 → svensk text och ikonsort.
+// symbol_code 1–27 → svensk text och ikonsort.
 const SYM = [
   null,
   ['Klart', 'sun'], ['Nästan klart', 'sun'], ['Växlande molnighet', 'part'], ['Halvklart', 'part'],

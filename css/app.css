@@ -53,6 +53,7 @@ button.card-link:hover span, button.card-link:focus-visible span { color: var(--
 
 p.note { font-size: var(--fs-sm); color: var(--text-3); margin: 4px 0; }
 p.note[data-s="fail"] { color: var(--bad); }
+p.note[data-s="warn"] { color: var(--warn); }
 p.fine { font-size: var(--fs-xs); color: var(--text-3); margin: 10px 0 0; }
 
 /* Tips */
